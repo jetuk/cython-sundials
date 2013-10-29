@@ -15,7 +15,7 @@ cdef class Cvode:
     #cdef int _it
     #cdef N_Vector y0
     
-    def __cinit__(self, multistep='bdf', iteration='functional'): 
+    def __init__(self, multistep='bdf', iteration='functional'): 
                      
         if multistep == 'bdf':
             self._ms = cvode.CV_BDF
@@ -49,7 +49,7 @@ cdef class Cvode:
         N = 2
         self.y0 = y0
         ret = cvode.CVodeInit(self._cv, _CvRhsFn, t0, y0._v)
-        
+        print ret
         ret = cvode.CVodeSStolerances(self._cv, reltol, abstol);
         print ret
         #ret = cvode.CVDense(self._cv, N)

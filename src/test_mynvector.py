@@ -1,6 +1,6 @@
 
 from pySundials import sundials as csun
-
+from pySundials import cvode
 import numpy as np
 
 class MyNvector(csun.N_Vector):
@@ -64,7 +64,7 @@ class MyNvector(csun.N_Vector):
     def WrmsNorm(self, w):
         return np.sqrt(np.sum( (self.data*w.data)**2)/self.Size() )          
     
-class Motion(csun.Cvode):
+class Motion(cvode.Cvode):
     def RhsFn(self, t, y, ydot):
         #print 'Rhs', y.data, t
         ydot.data[0,:] = y.data[1,:]

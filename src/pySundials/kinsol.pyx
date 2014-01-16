@@ -8,7 +8,13 @@ from cpython cimport Py_INCREF, Py_DECREF
 
 import cython
 
+import numpy as np
+cimport numpy as np
+np.import_array() # initialize C API to call PyArray_SimpleNewFromData
+
 import sys
+
+include 'denseGET.pxi'
 
 class KinsolError(Exception):
     pass

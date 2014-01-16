@@ -8,6 +8,11 @@ from cpython cimport Py_INCREF, Py_DECREF
 
 import cython
 
+import numpy as np
+cimport numpy as np
+np.import_array() # initialize C API to call PyArray_SimpleNewFromData
+
+include 'denseGET.pxi'
 
 cdef class Cvode:
     #cdef void *_cv

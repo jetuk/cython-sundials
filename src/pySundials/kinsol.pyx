@@ -19,6 +19,24 @@ include 'denseGET.pxi'
 class KinsolError(Exception):
     pass
 
+def GetReturnFlagName(long int flag):
+    """
+    returns the name of the constant associated with a KINSOL return flag
+    """
+    cdef char* c_string = kinsol.KINGetReturnFlagName(flag)
+    cdef bytes py_string = c_string
+    return py_string   
+
+
+def SpilsGetReturnFlagName(long int flag):
+    """
+    returns the name of the constant associated with a KINSPILS return flag
+    """
+    
+    cdef char* c_string = kinsol.KINSpilsGetReturnFlagName(flag)
+    cdef bytes py_string = c_string
+    return py_string   
+
 
 cdef class Kinsol:
     #cdef void *_kn
@@ -247,73 +265,9 @@ cdef class Kinsol:
         raise NotImplementedError()
         
         
-#    /*
-#     * -----------------------------------------------------------------
-#     * Optional Output Extraction Functions (KINSOL)
-#     * -----------------------------------------------------------------
-#     * The following functions can be called to get optional outputs
-#     * and statistical information related to the KINSOL solver:
-#     *
-#     *       Function Name       |      Returned Value
-#     *                           |
-#     * -----------------------------------------------------------------
-#     *                           |
-#     * KINGetWorkSpace           | returns both integer workspace size
-#     *                           | (total number of long int-sized blocks
-#     *                           | of memory allocated by KINSOL for
-#     *                           | vector storage) and real workspace
-#     *                           | size (total number of realtype-sized
-#     *                           | blocks of memory allocated by KINSOL
-#     *                           | for vector storage)
-#     *                           |
-#     * KINGetNumFuncEvals        | total number evaluations of the
-#     *                           | nonlinear system function F(u)
-#     *                           | (number of direct calls made to the
-#     *                           | user-supplied subroutine by KINSOL
-#     *                           | module member functions)
-#     *                           |
-#     * KINGetNumNonlinSolvIters  | total number of nonlinear iterations
-#     *                           | performed
-#     *                           |
-#     * KINGetNumBetaCondFails    | total number of beta-condition
-#     *                           | failures (see KINLineSearch)
-#     *                           |
-#     *                           | KINSOL halts if the number of such
-#     *                           | failures exceeds the value of the
-#     *                           | constant MXNBCF (defined in kinsol.c)
-#     *                           |
-#     * KINGetNumBacktrackOps     | total number of backtrack operations
-#     *                           | (step length adjustments) performed
-#     *                           | by the line search algorithm (see
-#     *                           | KINLineSearch)
-#     *                           |
-#     * KINGetFuncNorm            | scaled norm of the nonlinear system
-#     *                           | function F(u) evaluated at the
-#     *                           | current iterate:
-#     *                           |
-#     *                           |  ||fscale*func(u)||_L2
-#     *                           |
-#     * KINGetStepLength          | scaled norm (or length) of the step
-#     *                           | used during the previous iteration:
-#     *                           |
-#     *                           |  ||uscale*p||_L2
-#     *                           |
-#     * KINGetReturnFlagName      | returns the name of the constant
-#     *                           | associated with a KINSOL return flag
-#     *                           |
-#     * -----------------------------------------------------------------
-#     *
-#     * The possible return values for the KINSet* subroutines are the
-#     * following:
-#     *
-#     * KIN_SUCCESS : means the information was successfully retrieved [0]
-#     * 
-#     * KIN_MEM_NULL : means a NULL KINSOL memory block pointer was given
-#     *                (must call the KINCreate and KINInit memory
-#     *                allocation subroutines prior to calling KINSol) [-1]
-#     * -----------------------------------------------------------------
-#     */
-        
+    ###########
+    # Optional Output Extraction Functions (KINSOL)
+    ######################################################
     
     def GetWorkSpace(self, ):
         """
@@ -443,6 +397,151 @@ cdef class Kinsol:
             raise KinsolError("Unknown error [{}]".format(flag))
             
         return steplength
+
+    ###########
+    # Optional Output Extraction Functions (Spils)
+    ######################################################
+
+        
+    def SpilsGetWorkSpace(self,):
+        """
+        returns both integer workspace size (total number of long int-sized blocks
+        of memory allocated  for vector storage), and real workspace
+        size (total number of realtype-sized blocks of memory allocated
+        for vector storage)
+        """
+        cdef long int lenrwSG
+        cdef long int leniwSG
+        
+        flag = kinsol.KINSpilsGetWorkSpace(self._kn, &lenrwSG, &leniwSG)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return lenrwSG,leniwSG
+        
+    def SpilsGetNumPrecEvals(self, ):
+        """
+        total number of preconditioner evaluations (number of calls made
+        to the user-defined pset routine)
+        """
+        cdef long int npevals
+
+        flag = kinsol.KINSpilsGetNumPrecEvals(self._kn, &npevals)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return npevals
+        
+    def SpilsGetNumPrecSolves(self, ):
+        """
+        total number of times preconditioner was applied to linear system (number
+        of calls made to the user-supplied psolve function)
+        """
+        cdef long int npsolves
+        
+        flag = kinsol.KINSpilsGetNumPrecSolves(self._kn, &npsolves)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return npsolves
+        
+
+    def SpilsGetNumLinIters(self, ):
+        """
+        total number of linear iterations performed
+        """
+        cdef long int nliters
+        
+        flag = kinsol.KINSpilsGetNumLinIters(self._kn, &nliters)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nliters
+        
+    def SpilsGetNumConvFails(self, ):
+        """
+        total number of linear convergence failures
+        """
+        cdef long int nlcfails
+        
+        flag = kinsol.KINSpilsGetNumConvFails(self._kn, &nlcfails)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nlcfails
+        
+    def SpilsGetNumJtimesEvals(self, ):
+        """
+        total number of times the matrix-vector product J(u)*v was computed
+        (number of calls made to the jtimes subroutine)        
+        """
+        cdef long int njvevals
+        
+        flag = kinsol.KINSpilsGetNumJtimesEvals(self._kn, &njvevals)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return njvevals
+        
+    def SpilsGetNumFuncEvals(self, ):
+        """
+        total number of evaluations of the system function F(u) (number of
+        calls made to the user-supplied func routine by the linear solver
+        module member subroutines)
+        """
+        cdef long int nfevalsS
+        
+        flag = kinsol.KINSpilsGetNumFuncEvals(self._kn, &nfevalsS)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nfevalsS
+        
+    def SpilsGetLastFlag(self, ):
+        """
+        returns the last flag returned by the linear solver
+        """
+        cdef long int last_flag
+        
+        flag = kinsol.KINSpilsGetLastFlag(self._kn, &last_flag)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return last_flag        
+        
+
         
         
     def PrintFinalStats(self, ):

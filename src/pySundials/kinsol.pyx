@@ -241,6 +241,204 @@ cdef class Kinsol:
         raise NotImplementedError()
         
         
+#    /*
+#     * -----------------------------------------------------------------
+#     * Optional Output Extraction Functions (KINSOL)
+#     * -----------------------------------------------------------------
+#     * The following functions can be called to get optional outputs
+#     * and statistical information related to the KINSOL solver:
+#     *
+#     *       Function Name       |      Returned Value
+#     *                           |
+#     * -----------------------------------------------------------------
+#     *                           |
+#     * KINGetWorkSpace           | returns both integer workspace size
+#     *                           | (total number of long int-sized blocks
+#     *                           | of memory allocated by KINSOL for
+#     *                           | vector storage) and real workspace
+#     *                           | size (total number of realtype-sized
+#     *                           | blocks of memory allocated by KINSOL
+#     *                           | for vector storage)
+#     *                           |
+#     * KINGetNumFuncEvals        | total number evaluations of the
+#     *                           | nonlinear system function F(u)
+#     *                           | (number of direct calls made to the
+#     *                           | user-supplied subroutine by KINSOL
+#     *                           | module member functions)
+#     *                           |
+#     * KINGetNumNonlinSolvIters  | total number of nonlinear iterations
+#     *                           | performed
+#     *                           |
+#     * KINGetNumBetaCondFails    | total number of beta-condition
+#     *                           | failures (see KINLineSearch)
+#     *                           |
+#     *                           | KINSOL halts if the number of such
+#     *                           | failures exceeds the value of the
+#     *                           | constant MXNBCF (defined in kinsol.c)
+#     *                           |
+#     * KINGetNumBacktrackOps     | total number of backtrack operations
+#     *                           | (step length adjustments) performed
+#     *                           | by the line search algorithm (see
+#     *                           | KINLineSearch)
+#     *                           |
+#     * KINGetFuncNorm            | scaled norm of the nonlinear system
+#     *                           | function F(u) evaluated at the
+#     *                           | current iterate:
+#     *                           |
+#     *                           |  ||fscale*func(u)||_L2
+#     *                           |
+#     * KINGetStepLength          | scaled norm (or length) of the step
+#     *                           | used during the previous iteration:
+#     *                           |
+#     *                           |  ||uscale*p||_L2
+#     *                           |
+#     * KINGetReturnFlagName      | returns the name of the constant
+#     *                           | associated with a KINSOL return flag
+#     *                           |
+#     * -----------------------------------------------------------------
+#     *
+#     * The possible return values for the KINSet* subroutines are the
+#     * following:
+#     *
+#     * KIN_SUCCESS : means the information was successfully retrieved [0]
+#     * 
+#     * KIN_MEM_NULL : means a NULL KINSOL memory block pointer was given
+#     *                (must call the KINCreate and KINInit memory
+#     *                allocation subroutines prior to calling KINSol) [-1]
+#     * -----------------------------------------------------------------
+#     */
+        
+    
+    def GetWorkSpace(self, ):
+        """
+        returns both integer workspace size (total number of long int-sized blocks
+        of memory allocated by KINSOL for vector storage) and real workspace
+        size (total number of realtype-sized blocks of memory allocated by KINSOL
+        for vector storage)        
+        """
+        cdef long int lenrw
+        cdef long int leniw
+        
+        flag = kinsol.KINGetWorkSpace(self._kn, &lenrw, &leniw)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return lenrw, leniw
+            
+    def GetNumNonlinSolvIters(self, ):
+        """
+        total number of nonlinear iterations performed
+        """
+        cdef long int nniters
+        
+        flag = kinsol.KINGetNumNonlinSolvIters(self._kn, &nniters)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nniters
+        
+    def GetNumFuncEvals(self, ):
+        """
+        total number evaluations of the nonlinear system function F(u)
+        (number of direct calls made to the user-supplied subroutine by KINSOL
+        module member functions)    
+        """
+        cdef long int nfevals
+        
+        flag = kinsol.KINGetNumFuncEvals(self._kn, &nfevals)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nfevals
+        
+    def GetNumBetaCondFails(self, ):
+        """
+        total number of beta-condition failures (see KINLineSearch)
+
+        KINSOL halts if the number of such failures exceeds the value of the
+        constant MXNBCF (defined in kinsol.c)        
+        """
+        cdef long int nbcfails
+        
+        flag = kinsol.KINGetNumBetaCondFails(self._kn, &nbcfails)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nbcfails
+        
+    def GetNumBacktrackOps(self, ):
+        """
+        total number of backtrack operations (step length adjustments) performed
+        by the line search algorithm (see KINLineSearch)        
+        """
+        cdef long int nbacktr
+        
+        flag = kinsol.KINGetNumBacktrackOps(self._kn, &nbacktr)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return nbacktr
+        
+    def GetFuncNorm(self, ):
+        """
+        scaled norm of the nonlinear system function F(u) evaluated at the
+        current iterate:
+        
+             ||fscale*func(u)||_L2
+        
+        """
+        cdef sun.realtype fnorm
+        
+        flag = kinsol.KINGetFuncNorm(self._kn, &fnorm)
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return fnorm
+        
+    def GetStepLength(self, ):
+        """
+        scaled norm (or length) of the step used during the previous iteration:
+
+            ||uscale*p||_L2        
+        
+        """
+        cdef sun.realtype steplength
+
+        flag = kinsol.KINGetStepLength(self._kn, &steplength)        
+        
+        if flag == kinsol.KIN_MEM_NULL:
+            raise KinsolError("""KINSOL memory pointer is NULL. Call the KINCreate and KINInit memory
+                        allocation subroutines prior to calling KINSol [{}]""".format(flag))
+        if flag != kinsol.KIN_SUCCESS:
+            raise KinsolError("Unknown error [{}]".format(flag))
+            
+        return steplength
+        
+        
     def PrintFinalStats(self, ):
         cdef long int nni
         cdef long int nfe

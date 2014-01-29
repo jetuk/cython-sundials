@@ -8,8 +8,9 @@ import numpy as np
 
 print np.get_include()
 
-#sundials_lib = '/home/james/.local/lib/'
-#sundials_inc = '/home/james/.local/include/'
+#sundials_lib = '~/.local/lib/'
+sundials_lib = r'D:\apps\sundials-2.5.0\lib'
+sundials_inc = r'D:\apps\sundials-2.5.0\include'
 
 #sundials_static_libs = []
 
@@ -27,7 +28,7 @@ debug = False
 if debug:
     compile_args= []
 else:
-    compile_args = ["-O3",]
+    compile_args = ["-O2",]
 
 setup(
     name='pySundials',
@@ -42,25 +43,25 @@ setup(
     ext_modules = [
     
     Extension("pySundials.sundials", ["pySundials/sundials.pyx",],
-                    libraries=['sundials_nvecserial','lapack','blas'],
-                    include_dirs=[np.get_include(),],
-                    #library_dirs=[sundials_lib,],
+                    libraries=['sundials_nvecserial',],
+                    include_dirs=[np.get_include(),sundials_inc],
+                    library_dirs=[sundials_lib,],
                     extra_compile_args=compile_args,
-                    pyrex_gdb=debug,
+                    
             ),
     Extension("pySundials.cvode", ["pySundials/cvode.pyx",],
-                    libraries=['sundials_cvode','lapack','blas'],
-                    include_dirs=[np.get_include(),],
-                    #library_dirs=[sundials_lib,], 
+                    libraries=['sundials_cvode',],
+                    include_dirs=[np.get_include(),sundials_inc],
+                    library_dirs=[sundials_lib,], 
                     extra_compile_args=compile_args,
-                    pyrex_gdb=debug,
+                    
             ),
     Extension("pySundials.kinsol", ["pySundials/kinsol.pyx",],
-                    libraries=['sundials_kinsol','lapack','blas'],
-                    include_dirs=[np.get_include(),],
-                    #library_dirs=[sundials_lib,], 
+                    libraries=['sundials_kinsol',],
+                    include_dirs=[np.get_include(),sundials_inc],
+                    library_dirs=[sundials_lib,], 
                     extra_compile_args=compile_args,
-                    pyrex_gdb=debug,
+                    
             ),
             ],
 )

@@ -5,3 +5,6 @@ Created on Wed Apr 17 22:11:50 2013
 @author: james
 """
 
+import sundials
+import cvode
+import kinsol

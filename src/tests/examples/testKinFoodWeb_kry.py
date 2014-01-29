@@ -79,8 +79,11 @@
  */
 """
 import numpy as np
-from pySundials.kinsol import Kinsol
-from pySundials.sundials import NvectorNdarrayFloat64, DenseGETRF
+from pySundials.kinsol import Kinsol, denseGETRF, denseGETRS
+from pySundials.sundials import NvectorNdarrayFloat64
+
+
+np.seterr(all='raise')
 
 #/* Problem Constants */
 
@@ -111,6 +114,10 @@ TWO         =2.0          #/* 2. */
 PREYIN      =1.0          #/* initial guess for prey concentrations. */
 PREDIN      =30000.0 #/* initial guess for predator concs.      */
 
+
+CORRECT_VALUES_BL = [1.16428,1.16428,1.16428,34927.48780,34927.48780,34927.48780]
+CORRECT_VALUES_TR = [1.25797,1.25797,1.25797,37736.66420,37736.66420,37736.66420]
+
 #/* User-defined vector access macro: IJ_Vptr */
 
 #/* IJ_Vptr is defined in order to translate from the underlying 3D structure
@@ -140,7 +147,7 @@ class FoodWeb(Kinsol):
         # * Allocate memory for data structure of type UserData 
         # */        
         self.P = np.empty( (mx,my,num_species,num_species), dtype=np.float64 )
-        self.pivot = np.empty( (mx,my,num_species), dtype=np.int64 )
+        self.pivot = np.zeros( (mx,my,num_species), dtype=np.int64 )
         self.acoef = np.empty( (num_species,num_species) )
         self.bcoef = np.empty( num_species )
         self.cox = np.empty( num_species )
@@ -151,7 +158,7 @@ class FoodWeb(Kinsol):
         
         for i in range(self.np):
             a1 = (i,self.np)
-            a2 = (i+np,0)
+            a2 = (i+self.np,0)
             
             for j in range(self.np):
                 self.acoef[i,self.np+j]         = -GG
@@ -165,11 +172,11 @@ class FoodWeb(Kinsol):
             self.bcoef[i] = BB
             self.bcoef[i+self.np] = -BB
             
-            self.cox[i] = DPREY/dx2
-            self.cox[i+self.np] = DPRED/dx2
+            self.cox[i] = DPREY/self.dx**2
+            self.cox[i+self.np] = DPRED/self.dx**2
             
-            self.coy[i] = DPREY/dy2
-            self.coy[i+self.np] = DPRED/dy2
+            self.coy[i] = DPREY/self.dy**2
+            self.coy[i+self.np] = DPRED/self.dy**2
             
     def SetInitialProfiles(self, cc, sc):
         
@@ -187,15 +194,15 @@ class FoodWeb(Kinsol):
             sc.data[:,:,i] = stemp[i]
             
             
-    def WebRate(xx, yy, jx, jy, cc, rates ):        
+    def WebRate(self, xx, yy, jx, jy, cc, rates ):        
 
         for i in range(self.ns):
-            rates[ix,iy,i] = np.dot(cc[ix,iy,:], self.acoef[i,:])
-            
+            rates[jx,jy,i] = np.dot(cc[jx,jy,:], self.acoef[i,:])
+
         fac = ONE + ALPHA * xx * yy
-        
+
         for i in range(self.ns):
-            rates[ix,iy,i] = cc[ix,iy,i] * (self.bcoef[i]*fac+rates[ix,iy,i])
+            rates[jx,jy,i] = cc[jx,jy,i] * (self.bcoef[i]*fac+rates[jx,jy,i])
      
             
     def RhsFn(self, cc, fval):
@@ -207,35 +214,39 @@ class FoodWeb(Kinsol):
         delx = self.dx
         dely = self.dy
 
-  
-        #/* Loop over all mesh points, evaluating rate array at each point*/
-        for jy in range(self.my):
-            yy = dely*jy
-
-            #/* Set lower/upper index shifts, special at boundaries. */
-            idyl = 1 if jy != 0 else -1
-            idyu = 1 if jy != (MY-1) else -1
-            
-            for jx in range(self.mx):
-                xx = delx*jx
-
-                #/* Set left/right index shifts, special at boundaries. */
-                idxl = 1 if jx != 0 else -1
-                idxr = 1 if jx != (MX-1) else -1
-
+        try:
+            #/* Loop over all mesh points, evaluating rate array at each point*/
+            for jy in range(self.my):
+                yy = dely*jy
+    
+                #/* Set lower/upper index shifts, special at boundaries. */
+                idyl = 1 if jy != 0 else -1
+                idyu = 1 if jy != (MY-1) else -1
                 
-                #/* Get species interaction rate array at (xx,yy) */
-                self.WebRate(xx, yy, jx, jy, cc, self.rates);
-                
-                dcyli = cc.data[ix,iy,:] - cc.data[ix,iy-idyl,:]
-                dcyui = cc.data[ix,iy+idyu,:] - cc.data[ix,iy,:]
-                
-                dcxli = cc.data[ix,iy,:] - cc.data[ix-idxl,iy,:]
-                dcxri = cc.data[ix+idxr,iy,:] - cc.data[ix,iy,:]
-                
-                
-                #/* Compute the total rate value at (xx,yy) */
-                fval.data[ix,iy,:] = self.coy*(dcyui-dcyli)  + self.cox*(dcxri-dcxli) + self.rates[ix,iy,:]
+                for jx in range(self.mx):
+                    xx = delx*jx
+    
+                    #/* Set left/right index shifts, special at boundaries. */
+                    idxl = 1 if jx != 0 else -1
+                    idxr = 1 if jx != (MX-1) else -1
+    
+                    
+                    #/* Get species interaction rate array at (xx,yy) */
+                    self.WebRate(xx, yy, jx, jy, cc.data, self.rates.data)
+                    
+                    dcyli = cc.data[jx,jy,:] - cc.data[jx,jy-idyl,:]
+                    dcyui = cc.data[jx,jy+idyu,:] - cc.data[jx,jy,:]
+                    
+                    dcxli = cc.data[jx,jy,:] - cc.data[jx-idxl,jy,:]
+                    dcxri = cc.data[jx+idxr,jy,:] - cc.data[jx,jy,:]
+                    
+                    
+                    #/* Compute the total rate value at (xx,yy) */
+                    fval.data[jx,jy,:] = self.coy*(dcyui-dcyli)  + self.cox*(dcxri-dcxli) + self.rates.data[jx,jy,:]
+        except Exception as e:
+            print e, e.message
+            return -1
+        #print fval.data.min(), fval.data.max()
         return 0
         
     def SpilsPrecSetup(self, cc, cscale, fval, fscale,
@@ -259,7 +270,7 @@ class FoodWeb(Kinsol):
         sqruround = self.sqruround
         fac = fval.WL2Norm( fscale )
         
-        peturb_rates = np.empty_like( self.rates )
+        perturb_rates = np.empty_like( self.rates.data )
         
         r0 = THOUSAND * uround * fac * NEQ
         if r0 == ZERO: r0 = ONE
@@ -279,54 +290,77 @@ class FoodWeb(Kinsol):
       #ratesxy = IJ_Vptr((data->rates),jx,jy);
                 #/* Compute difference quotients of interaction rate fn. */
                 for j in range(self.ns):
-                    
-                    csave = cc.data[ix,iy,j] # /* Save the j,jx,jy element of cc */
-                    r = max(sqruround*abs(csave), r0/cscale.data[ix,iy,j])
-                    cc.data[ix,iy,j] += r # /* Perturb the j,jx,jy element of cc */
+                    csave = cc.data[jx,jy,j] # /* Save the j,jx,jy element of cc */
+                    r = max(sqruround*abs(csave), r0/cscale.data[jx,jy,j])
+                    cc.data[jx,jy,j] += r # /* Perturb the j,jx,jy element of cc */
                     fac = ONE/r
       
-        
-                    self.WebRate(xx, yy, jx, jy, cc, perturb_rates )
-        
+                    
+                    self.WebRate(xx, yy, jx, jy, cc.data, perturb_rates )
+                    
                     #/* Restore j,jx,jy element of cc */
-                    cc.data[ix,iy,j] = csave
+                    cc.data[jx,jy,j] = csave
         
                     #/* Load the j-th column of difference quotients */
                     for i in range(self.ns):
-                        self.P[ix,iy,j,i] = (perturb_rates[ix,iy,i] - self.rates[ix,iy,i])*fac
+                        self.P[jx,jy,j,i] = (perturb_rates[jx,jy,i] - self.rates.data[jx,jy,i])*fac
             
                 #/* Do LU decomposition of size NUM_SPECIES preconditioner block */
-            ret = denseGETRF(self.P[ix,iy,:,:], NUM_SPECIES, NUM_SPECIES, self.pivot[jx,jy])
-            if ret != 0: return 1
+                ret = denseGETRF(self.P[jx,jy,:,:], self.pivot[jx,jy,:])
+                
+                #if ret != 0: return 1
   
   
-            return 0
+        return 0
         
         
-        def PrecSolveBD(cc, cscale, fval, fscale, vv, ftem):
-            """
-            /*
-             * Preconditioner solve routine 
-             */            
-            """
-
-          
-            for jx in range(self.mx):        
-
-                for jy in range(self.my):
-
-                      #For each (jx,jy), solve a linear system of size NUM_SPECIES.
-                      #vxy is the address of the corresponding portion of the vector vv;
-                      #Pxy is the address of the corresponding block of the matrix P;
-                      #piv is the address of the corresponding block of the array pivot.
-                      vxy = vv.data[jx,jy]
-                      Pxy = self.P[jx,jy,:,:]
-                      piv = self.pivot[jx,jy]
+    def SpilsPrecSolve(self, cc, cscale, fval, fscale, vv, ftem):
+        """
+        /*
+         * Preconditioner solve routine 
+         */            
+        """
+        #print 'SpilsPrecSolve'
       
-                      denseGETRS(Pxy, NUM_SPECIES, piv, vxy);
+        for jx in range(self.mx):        
 
-            return 0
+            for jy in range(self.my):
 
+                  #For each (jx,jy), solve a linear system of size NUM_SPECIES.
+                  #vxy is the address of the corresponding portion of the vector vv;
+                  #Pxy is the address of the corresponding block of the matrix P;
+                  #piv is the address of the corresponding block of the array pivot.
+                  
+                  
+                  piv = self.pivot[jx,jy,:]                  
+                  Pxy = self.P[jx,jy,:,:]
+                  #print Pxy, piv
+                  denseGETRS(self.P[jx,jy,:,:], self.pivot[jx,jy,:], vv.data[jx,jy,:])
+
+        
+        return 0
+
+
+    def PrintFinalStats(self, ):
+        """
+        Print final statistics contained in iopt 
+        """
+        
+        nni = self.GetNumNonlinSolvIters()
+        nfe = self.GetNumFuncEvals()
+        nli = self.SpilsGetNumLinIters()
+        npe = self.SpilsGetNumPrecEvals()
+        nps = self.SpilsGetNumPrecSolves()
+        ncfl = self.SpilsGetNumConvFails()
+        nfeSG = self.SpilsGetNumFuncEvals()
+        
+    
+
+        print "Final Statistics.. "
+        print "nni    = %5ld    nli   = %5ld"%(nni, nli)
+        print "nfe    = %5ld    nfeSG = %5ld"%(nfe, nfeSG)
+        print "nps    = %5ld    npe   = %5ld     ncfl  = %5ld"%(nps, npe, ncfl)
+  
 
 
 #/* Functions Called by the KINSOL Solver */
@@ -364,7 +398,7 @@ class FoodWeb(Kinsol):
 # *--------------------------------------------------------------------
 # */
 
-def main():
+def testKinFoodWeb():
 
     #int globalstrategy;
     #realtype fnormtol, scsteptol;
@@ -374,7 +408,7 @@ def main():
     #void *kmem;
 
         
-    data = self.FoodWeb(MX,MY, NUM_SPECIES, AX,AY, 1E-10)
+    data = FoodWeb(MX,MY, NUM_SPECIES, AX,AY, 1E-10)
 
     #/* Create serial vectors of length NEQ */
     cc = NvectorNdarrayFloat64((MX,MY, NUM_SPECIES))    
@@ -387,7 +421,8 @@ def main():
 
     data.SetInitialProfiles(cc, sc);
 
-    fnormtol=FTOL; scsteptol=STOL;
+    fnormtol=FTOL
+    scsteptol=STOL
 
     #/* Call KINCreate/KINInit to initialize KINSOL.
        #A pointer to KINSOL problem memory is returned and stored in kmem. */
@@ -401,15 +436,17 @@ def main():
        #routines PrecSetupBD and PrecSolveBD. */
     maxl = 15
     maxlrst = 2
-    data.Setup(u, normtol=FTOL,scsteptol=STOL,dense=False,
+    strategy = 'none'
+    data.Setup(cc, normtol=FTOL,scsteptol=STOL,dense=False,
                linear_solv='spgmr',user_Presolve=True,
-               max_restarts=maxrst)
+               max_restarts=maxlrst,spils_maxl=maxl)
 
     #/* Print out the problem size, solution parameters, initial guess. */
-    #PrintHeader(globalstrategy, maxl, maxlrst, fnormtol, scsteptol);
+    PrintHeader(strategy, maxl, maxlrst, fnormtol, scsteptol);
 
     #/* Call KINSol and print output concentration profile */   
-    flag = data.Solve(cc,sc,sc)
+    print 'Solving...'
+    flag = data.Solve(cc,sc,sc, strategy=strategy)
 #  flag = KINSol(kmem,           /* KINSol memory block */
 #                cc,             /* initial guess on input; solution vector */
 #                globalstrategy, /* global stragegy choice */
@@ -418,7 +455,7 @@ def main():
 
 
     print "\n\nComputed equilibrium species concentrations:\n"
-    PrintOutput(cc);
+    PrintAndAssertOutput(cc)
 
     #/* Print final statistics and free memory */  
     data.PrintFinalStats()
@@ -440,7 +477,7 @@ def PrintHeader(globalstrategy, maxl, maxlrst, fnormtol, scsteptol):
     print "Mesh dimensions = %d X %d"%(MX, MY)
     print "Number of species = %d"% NUM_SPECIES
     print "Total system size = %d\n"% NEQ
-    print "Flag globalstrategy = %d (0 = None, 1 = Linesearch)"%globalstrategy
+    print "Flag globalstrategy = %s "%globalstrategy
     print "Linear solver is SPGMR with maxl = %d, maxlrst = %d"%(maxl, maxlrst)
     print "Preconditioning uses interaction-only block-diagonal matrix"
     print "Positivity constraints imposed on all components"
@@ -454,12 +491,14 @@ def PrintHeader(globalstrategy, maxl, maxlrst, fnormtol, scsteptol):
 
 
 
-def PrintOutput(cc):
+def PrintAndAssertOutput(cc):
     """
     /* 
      * Print sampled values of current cc 
      */    
     """
+    from nose.tools import assert_almost_equal
+
     
     
     jy = 0
@@ -468,8 +507,9 @@ def PrintOutput(cc):
 
     #/* Print out lines with up to 6 values per line */
     for _is in range(NUM_SPECIES):
-        if (_is%6)*6 == _is: print ""
-        print " %g"% cc.data[jx,jy,_is]
+        print " %g"% cc.data[jx,jy,_is],
+        assert_almost_equal(CORRECT_VALUES_BL[_is], cc.data[jx,jy,_is], places=4)
+        
 
   
     jy = MY-1
@@ -478,83 +518,11 @@ def PrintOutput(cc):
 
     #/* Print out lines with up to 6 values per line */
     for _is in range(NUM_SPECIES):
-        if (_is%6)*6 == _is: print ""
-        print " %g"% cc.data[jx,jy,_is]
+        print " %g"% cc.data[jx,jy,_is],
+        assert_almost_equal(CORRECT_VALUES_TR[_is], cc.data[jx,jy,_is], places=4)
   
     print "\n"
 
 
-/* 
- * Print final statistics contained in iopt 
- */
-
-static void PrintFinalStats(void *kmem)
-{
-  long int nni, nfe, nli, npe, nps, ncfl, nfeSG;
-  int flag;
-  
-  flag = KINGetNumNonlinSolvIters(kmem, &nni);
-  check_flag(&flag, "KINGetNumNonlinSolvIters", 1);
-  flag = KINGetNumFuncEvals(kmem, &nfe);
-  check_flag(&flag, "KINGetNumFuncEvals", 1);
-  flag = KINSpilsGetNumLinIters(kmem, &nli);
-  check_flag(&flag, "KINSpilsGetNumLinIters", 1);
-  flag = KINSpilsGetNumPrecEvals(kmem, &npe);
-  check_flag(&flag, "KINSpilsGetNumPrecEvals", 1);
-  flag = KINSpilsGetNumPrecSolves(kmem, &nps);
-  check_flag(&flag, "KINSpilsGetNumPrecSolves", 1);
-  flag = KINSpilsGetNumConvFails(kmem, &ncfl);
-  check_flag(&flag, "KINSpilsGetNumConvFails", 1);
-  flag = KINSpilsGetNumFuncEvals(kmem, &nfeSG);
-  check_flag(&flag, "KINSpilsGetNumFuncEvals", 1);
-
-  printf("Final Statistics.. \n");
-  printf("nni    = %5ld    nli   = %5ld\n", nni, nli);
-  printf("nfe    = %5ld    nfeSG = %5ld\n", nfe, nfeSG);
-  printf("nps    = %5ld    npe   = %5ld     ncfl  = %5ld\n", nps, npe, ncfl);
-  
-}
-
-/*
- * Check function return value...
- *    opt == 0 means SUNDIALS function allocates memory so check if
- *             returned NULL pointer
- *    opt == 1 means SUNDIALS function returns a flag so check if
- *             flag >= 0
- *    opt == 2 means function allocates memory so check if returned
- *             NULL pointer 
- */
-
-static int check_flag(void *flagvalue, char *funcname, int opt)
-{
-  int *errflag;
-
-  /* Check if SUNDIALS function returned NULL pointer - no memory allocated */
-  if (opt == 0 && flagvalue == NULL) {
-    fprintf(stderr, 
-            "\nSUNDIALS_ERROR: %s() failed - returned NULL pointer\n\n",
-	    funcname);
-    return(1);
-  }
-
-  /* Check if flag < 0 */
-  else if (opt == 1) {
-    errflag = (int *) flagvalue;
-    if (*errflag < 0) {
-      fprintf(stderr,
-              "\nSUNDIALS_ERROR: %s() failed with flag = %d\n\n",
-	      funcname, *errflag);
-      return(1); 
-    }
-  }
-
-  /* Check if function returned NULL pointer - no memory allocated */
-  else if (opt == 2 && flagvalue == NULL) {
-    fprintf(stderr,
-            "\nMEMORY_ERROR: %s() failed - returned NULL pointer\n\n",
-	    funcname);
-    return(1);
-  }
-
-  return(0);
-}
+if __name__ == '__main__':
+    main()

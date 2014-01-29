@@ -210,5 +210,5 @@ cdef extern from "sundials/sundials_dense.h":
     # * directly accessing the data in the DlsMat A (i.e. the field cols)
     # * -----------------------------------------------------------------
     # */
-    long int denseGETRF(realtype *a, long int m, long int n, long int *p)
-    void denseGETRS(realtype *a, long int n, long int *p, realtype *b) 
+    long int denseGETRF(realtype **a, long int m, long int n, long int *p)
+    void denseGETRS(realtype **a, long int n, long int *p, realtype *b) 

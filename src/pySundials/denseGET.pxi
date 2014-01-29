@@ -3,22 +3,33 @@
 
 
 
-cpdef int denseGETRF( sun.realtype[:,::1] a, long[::1] p ):
+cpdef int denseGETRF( sun.realtype[:,::1] a, long int[::1] p ):
     
-    cdef int m = a.shape[0]
-    cdef int n = a.shape[1]
-    cdef ret    
+    cdef long int m = a.shape[0]
+    cdef long int n = a.shape[1]
+    cdef long int ret    
+    cdef long int i
     
-    ret = sun.denseGETRF( &a[0,0], m, n, &p[0])
+    cdef sun.realtype **col_ptrs = <sun.realtype**>malloc(n*cython.sizeof(<sun.realtype*>NULL))
+    
+    for i in range(n):
+        col_ptrs[i] = &a[i,0]
+
+    ret = sun.denseGETRF( col_ptrs, m, n, &p[0])    
+    free(col_ptrs)
     
     return ret
     
     
-cpdef denseGETRS(sun.realtype[:,::1] a, long[::1] p ):
+cpdef denseGETRS(sun.realtype[:,::1] a, long[::1] p, sun.realtype[::1] b ):
     
     cdef int n = a.shape[0]
-    cdef sun.realtype[::1] b = np.empty( (n,) )
+        
+    cdef sun.realtype **col_ptrs = <sun.realtype**>malloc(n*cython.sizeof(<sun.realtype*>NULL))
     
-    sun.denseGETRS(&a[0,0], n, &p[0], &b[0] )
+    for i in range(n):
+        col_ptrs[i] = &a[i,0]    
     
-    return np.asarray(b)
+    sun.denseGETRS(col_ptrs, n, &p[0], &b[0] )
+    
+    

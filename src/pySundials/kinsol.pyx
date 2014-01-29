@@ -4,6 +4,7 @@ cimport libkinsol as kinsol
 from sundials cimport N_Vector
 
 from libc.stdlib cimport abort, malloc, free
+from libc.stdint cimport uintptr_t
 from cpython cimport Py_INCREF, Py_DECREF
 
 import cython
@@ -118,7 +119,7 @@ cdef class Kinsol:
         else:
             raise ValueError
             
-        if user_Presolve:
+        if user_Presolve and not dense:
             ret = kinsol.KINSpilsSetPreconditioner(self._kn, _KnSpilsPrecSetupFn,
                                                    _KnSpilsPrecSolveFn)
         
@@ -619,8 +620,9 @@ cdef int _KnSpilsPrecSolveFn(sun.N_Vector uu, sun.N_Vector uscale,
     pyuscale = <object>uscale.content
     pyfval = <object>fval.content
     pyfscale = <object>fscale.content
+    pyvv = <object>vv.content
     pyvtemp = <object>vtemp.content
     
     
-    return obj.SpilsPrecSolve(pyuu, pyuscale, pyfval, pyfscale, pyvtemp)    
+    return obj.SpilsPrecSolve(pyuu, pyuscale, pyfval, pyfscale, pyvv, pyvtemp)    
         

@@ -131,7 +131,7 @@ cdef extern from "sundials/sundials_direct.h":
 #     * -----------------------------------------------------------------
 #     */
 #    
-    cdef struct DlsMat:
+    cdef struct _DlsMat:
         int type
         long int M
         long int N
@@ -142,6 +142,8 @@ cdef extern from "sundials/sundials_direct.h":
         realtype *data
         long int ldata
         realtype **cols
+        
+    ctypedef _DlsMat *DlsMat
         
 cdef extern from "sundials/sundials_iterative.h":
     #/*

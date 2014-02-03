@@ -92,8 +92,8 @@ NUM_SPECIES = 6#  /* must equal 2*(number of prey or predators)
 
 #define PI       RCONST(3.1415926535898)   /* pi */ 
 
-MX          =8              #/* MX = number of x mesh points */
-MY          =8              #/* MY = number of y mesh points */
+MX          =5              #/* MX = number of x mesh points */
+MY          =5              #/* MY = number of y mesh points */
 NSMX        =NUM_SPECIES * MX
 NEQ         =NSMX * MY    #/* number of equations in the system */
 AA          =1.0          #/* value of coefficient AA in above eqns */
@@ -437,9 +437,14 @@ def testKinFoodWeb():
     maxl = 15
     maxlrst = 2
     strategy = 'none'
-    data.Setup(cc, normtol=FTOL,scsteptol=STOL,dense=False,
-               linear_solv='spgmr',user_Presolve=True,
-               max_restarts=maxlrst,spils_maxl=maxl)
+               
+    data.initSolver(cc)
+    data.setupIndirectLinearSolver(solver='spgmr', maxl=maxl, user_pre=True)
+    
+    data.funcNormTol=FTOL
+    data.scaledStepTol=STOL               
+    
+    data.spilsMaxRestarts=maxlrst
 
     #/* Print out the problem size, solution parameters, initial guess. */
     PrintHeader(strategy, maxl, maxlrst, fnormtol, scsteptol);

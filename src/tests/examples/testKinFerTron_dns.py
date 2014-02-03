@@ -145,7 +145,12 @@ class testKinFerTron_dns(object):
           
 
         # Seutp dense solver and tolerances
-        self.data.Setup(self.u, normtol=self.FTOL,scsteptol=self.STOL,dense=True)
+        
+        self.data.initSolver(self.u)
+        self.data.setupDenseLinearSolver(self.u.Size())
+        
+        self.data.funcNormTol=self.FTOL
+        self.data.scaledStepTol=self.STOL
         self.data.SetConstraints(self.c)
         
         
@@ -251,7 +256,7 @@ class testKinFerTron_dns(object):
             print " with line search"
             
             
-        self.data.SetMaxSetupCalls(mset)    
+        self.data.maxSetupCalls = mset
         self.data.Solve(self.u,self.s,self.s,strategy=glstr,print_level=0)
     
 

@@ -39,102 +39,114 @@ def SpilsGetReturnFlagName(long int flag):
     return py_string   
 
 
-cdef class Kinsol:
+include 'kinsol_properties.pxi'
+
+cdef class Kinsol(BaseKinsol):
     #cdef void *_kn
     #cdef int _ms
     #cdef int _it
     #cdef N_Vector tmpl
     
-    def __cinit__(self, ): 
-                     
+#    def __cinit__(self,): 
+#                     
+#        
+#        self._kn = kinsol.KINCreate()
+#        if not self._kn:
+#            raise MemoryError
+#        
+#        ret = kinsol.KINSetUserData(self._kn, <void *>self)  
+#        if ret != 0:
+#            raise KinsolError()
+#            
+#
+#            
+#        print 'Initialised Kinsol'
+#        
+#        Py_INCREF(self)
         
-        self._kn = kinsol.KINCreate()
-        if not self._kn:
-            raise MemoryError
+    def initSolver(self, N_Vector tmpl):
         
-        ret = kinsol.KINSetUserData(self._kn, <void *>self)  
-        if ret != 0:
-            raise KinsolError()
-            
-        print 'Initialised Kinsol'
-        
-        Py_INCREF(self)
-        
-        
-    def Setup(self, N_Vector tmpl, 
-              user_Jv=False,
-              normtol=0.0, 
-              scsteptol=0.0,
-              mxnewtstep=None, 
-              spils_maxl=0, 
-              mxiter=200,
-              dense=True,
-              linear_solv='spgmr',
-              user_Presolve=False,
-              max_restarts=0,
-              eta_choice='choice1'):
-        print 'Setting up Kinsol...'
-        cdef long N
-        N = tmpl.Size()
-        self.tmpl = tmpl
-        print N
-        sys.stdout.write('\t ..Init..')
         ret = kinsol.KINInit(self._kn, _KnRhsFn, tmpl._v)
-
-        print ret
-                
         if ret != 0:
-            print 'Failed!'
             raise KinsolError()
-        print 'Success'
-        ret = kinsol.KINSetNumMaxIters(self._kn, mxiter)
-        ret = kinsol.KINSetFuncNormTol(self._kn, normtol)        
-        ret = kinsol.KINSetScaledStepTol(self._kn, scsteptol)
-        print ret, N
+    
         
-        if not mxnewtstep is None:
-            ret = kinsol.KINSetMaxNewtonStep(self._kn, mxnewtstep)
-            print ret
-        if dense:
-            ret = kinsol.KINDense(self._kn, N)
-        else:
-            if linear_solv == 'spgmr':
-                ret = kinsol.KINSpgmr(self._kn, spils_maxl)
-                kinsol.KINSpilsSetMaxRestarts(self._kn, max_restarts)
-            elif linear_solv == 'spbcg':
-                ret = kinsol.KINSpbcg(self._kn, spils_maxl)
-            elif linear_solv == 'sptfqmr':
-                ret = kinsol.KINSptfqmr(self._kn, spils_maxl)
-            else:
-                raise ValueError
+    ###################            
+    # Linear solver setup routines
+    #
+    ###################
         
-        print ret
         
-        if eta_choice == 'choice1':
-            ret = kinsol.KINSetEtaForm(self._kn, kinsol.KIN_ETACHOICE1)
-        elif eta_choice == 'choice2':
-            ret = kinsol.KINSetEtaForm(self._kn, kinsol.KIN_ETACHOICE2)
-        elif eta_choice == 'constant':
-            ret = kinsol.KINSetEtaForm(self._kn, kinsol.KIN_ETACONSTANT)
-        else:
-            raise ValueError
+    def setupDenseLinearSolver(self, long int N, user_jac=False ):
+        """
+        Initialise Dense Linear Solver
+        
+        if user_jac is True then the subclass must reimplement Kinsol.DlsDenseJacFn
+        to perform the appropriate jacobian calculations.
+        """
+        ret = kinsol.KINDense(self._kn, N)
+        if user_jac:
+            ret = kinsol.KINDlsSetDenseJacFn(self._kn, _KnDlsDenseJacFn)
             
-        if user_Presolve and not dense:
+    def setupBandLinearSolver(self, long int N, long int mupper, long int mlower, user_jac=False ):
+        """
+        Initialise Dense Linear Solver
+        
+        if user_jac is True then the subclass must reimplement Kinsol.DlsDenseJacFn
+        to perform the appropriate jacobian calculations.
+        """
+        ret = kinsol.KINBand(self._kn, N, mupper, mlower)
+        if user_jac:
+            ret = kinsol.KINDlsSetBandJacFn(self._kn, _KnDlsBandJacFn)
+            
+    def setupIndirectLinearSolver(self, solver='spgmr', int maxl=0, user_pre=False, user_jac=False ):
+        """
+        Initialise Indirect Linear Solver
+        
+        
+        """
+        if solver == 'spgmr':
+            ret = kinsol.KINSpgmr(self._kn, maxl)
+        elif solver == 'spbcg':
+            ret = kinsol.KINSpbcg(self._kn, maxl)
+        elif solver == 'sptfqmr':
+            ret = kinsol.KINSptfqmr(self._kn, maxl)
+        else:
+            raise ValueError("Solver name not recognised")
+            
+        if ret == kinsol.KINSPILS_MEM_NULL:
+            raise ValueError("Null kinsol memory pointer given")
+        elif ret == kinsol.KINSPILS_MEM_FAIL:
+            raise ValueError("Allocating memory for linear solver failed")
+        elif ret == kinsol.KINSPILS_ILL_INPUT:
+            raise ValueError("Illegal input")
+        elif ret != kinsol.KINSPILS_SUCCESS:
+            raise ValueError("Unknown Error ({})".format(ret))
+            
+            
+        if user_pre:
             ret = kinsol.KINSpilsSetPreconditioner(self._kn, _KnSpilsPrecSetupFn,
                                                    _KnSpilsPrecSolveFn)
-        
-        if user_Jv:
-            ret = kinsol.KINSpilsSetJacTimesVecFn(self._kn, _KnJacTimesVecFn)
+            self._handleSpilsSetReturn(ret, 'SpilsSetPreconditioner')
+        if user_jac:
+            ret = kinsol.KINSpilsSetJacTimesVecFn(self._kn, _KnSpilsJacTimesVecFn)            
+            self._handleSpilsSetReturn(ret, 'SpilsSetJacTimesVecFn')
             
-    def SetMaxSetupCalls(self, int msbset=0):
-        ret = kinsol.KINSetMaxSetupCalls(self._kn, msbset)
-        if ret == kinsol.KIN_SUCCESS:
-            return
-        if ret == kinsol.KIN_MEM_NULL:
-            raise ValueError('Setup first must be called before SetMaxSetupCalls')
-        if ret == kinsol.KIN_ILL_INPUT:
-            raise ValueError('Illegal value')
-        raise ValueError('Unknown error ({}))'.format(ret))
+            
+
+    ###################            
+    # Properties from the various KINGet/Set Functions
+    #
+    # The Kinsol public api does not provide Get methods for the 
+    # main solver properties. It is possible to retrieve these from the
+    # internal struct but this has not been implemented here. 
+    # Therefore all @property functions return NotImplementedError in
+    # this situation
+    ###################
+            
+    
+        
+
         
     def SetConstraints(self, N_Vector constraints):
         print 'Setting constraints...'
@@ -168,7 +180,13 @@ cdef class Kinsol:
     def RhsFn(self, uu, fval):
         raise NotImplementedError()        
         
-    def JacTimesVec(self, uu, v, Jv, new_uu):
+    def DlsDenseJacFn(self, N, u, fu, J, tmp1, tmp2):
+        raise NotImplementedError()
+        
+    def DlsBandJacFn(self, N, mupper, mlower, u, fu, J, tmp1, tmp2):        
+        raise NotImplementedError()
+        
+    def SpilsJacTimesVec(self, uu, v, Jv, new_uu):
         raise NotImplementedError()
         
     def SpilsPrecSetup(self, uu, uscale, fval, fscale,
@@ -403,6 +421,30 @@ cdef class Kinsol:
     # Optional Output Extraction Functions (Spils)
     ######################################################
 
+
+    def _handleSpilsSetReturn(self, ret, func_name):
+        if ret == kinsol.KIN_SUCCESS:
+            return
+        if ret == kinsol.KIN_MEM_NULL:
+            raise ValueError('Kinsol memory not allocated correctly when calling {}'.format(func_name))
+        if ret == kinsol.KIN_LMEM_NULL:
+            raise ValueError('Linear solver memory is not allocated correctly when calling {}'.format(func_name))
+        if ret == kinsol.KIN_ILL_INPUT:
+            raise ValueError('Illegal value when calling {}'.format(func_name))
+        raise ValueError('Unknown error ({}))'.format(ret))
+
+
+    property spilsMaxRestarts:
+        def __get__(self, ):
+            raise NotImplementedError()
+        
+        
+        def __set__(self, int maxrs):
+            ret = kinsol.KINSpilsSetMaxRestarts(self._kn, maxrs)
+            self._handleSpilsSetReturn(ret, 'SpilsSetMaxRestarts')
+
+    
+
         
     def SpilsGetWorkSpace(self,):
         """
@@ -561,6 +603,8 @@ cdef class Kinsol:
         print "Final Statistics:"
         print "  nni = {:5d}    nfe  = {:5d} ".format(nni, nfe)
         print "  nje = {:5d}    nfeD = {:5d} ".format(nje, nfeD)
+        
+    
 
 
 
@@ -573,9 +617,25 @@ cdef int _KnRhsFn(sun.N_Vector uu,
     pyuu = <object>uu.content
     pyfval = <object>fval.content
     return obj.RhsFn(pyuu, pyfval)
+ 
+
+   
+cdef int _KnDlsDenseJacFn(long int N,
+    				sun.N_Vector u, sun.N_Vector fu, 
+    				sun.DlsMat J, void *user_data,
+    				sun.N_Vector tmp1, sun.N_Vector tmp2):
+            
+    raise NotImplementedError("Waiting on Cythong wrapper of DlsMat")
+    
+cdef int _KnDlsBandJacFn(long int N, long int mupper, long int mlower,
+    			       sun.N_Vector u, sun.N_Vector fu, 
+    			       sun.DlsMat J, void *user_data,
+    			       sun.N_Vector tmp1, sun.N_Vector tmp2):
+                  
+    raise NotImplementedError("Waiting on Cythong wrapper of DlsMat")        
     
     
-cdef int _KnJacTimesVecFn(sun.N_Vector v, sun.N_Vector Jv,
+cdef int _KnSpilsJacTimesVecFn(sun.N_Vector v, sun.N_Vector Jv,
                                          sun.N_Vector uu, sun.booleantype *new_uu, 
                                          void *user_data):
     cdef object obj
@@ -587,6 +647,9 @@ cdef int _KnJacTimesVecFn(sun.N_Vector v, sun.N_Vector Jv,
     pyJv = <object>Jv.content
     pynew_uu = <int>new_uu
     return obj.JacTimesVec(pyuu, pyv, pyJv, pynew_uu)
+    
+    
+
     
 
 cdef int _KnSpilsPrecSetupFn(sun.N_Vector uu, sun.N_Vector uscale,

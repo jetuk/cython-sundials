@@ -8,7 +8,7 @@ from sundials cimport N_Vector
 #    cdef int _it
 #    cdef N_Vector y0
     
-cdef class Kinsol:
+cdef class BaseKinsol:
     cdef void *_kn
     cdef int _ms
     cdef int _it

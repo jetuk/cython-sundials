@@ -756,7 +756,33 @@ cdef extern from "kinsol/kinsol_dense.h":
 #     */
 #    
     int KINDense(void *kinmem, long int N)
+   
+cdef extern from "kinsol/kinsol_band.h":
+#    /*
+#     * -----------------------------------------------------------------
+#     * Function : KINBand
+#     * -----------------------------------------------------------------
+#     * A call to the KINBand function links the main solver with the 
+#     * KINBAND linear solver. Its arguments are as follows:
+#     *
+#     * kinmem - pointer to the integrator memory returned by KINCreate.
+#     *
+#     * N      - problem size
+#     *
+#     * mupper - upper bandwidth of the band Jacobian
+#     *
+#     * mlower - lower bandwidth of the band Jacobian
+#     *
+#     * The return value of KINBand is one of:
+#     *    KINDLS_SUCCESS   if successful
+#     *    KINDLS_MEM_NULL  if the kinsol memory was NULL
+#     *    KINDLS_MEM_FAIL  if there was a memory allocation failure
+#     *    KINDLS_ILL_INPUT if a required vector operation is missing
+#     *                        or if a bandwidth has an illegal value.
+#     * -----------------------------------------------------------------
+#     */
     
+    int KINBand(void *kinmem, long int N, long int mupper, long int mlower)
 
 cdef extern from "kinsol/kinsol_direct.h":
 #    /*
@@ -1444,3 +1470,23 @@ cdef extern from "kinsol/kinsol_sptfqmr.h":
 #     */
 
     int KINSptfqmr(void *kinmem, int maxl)
+    
+    
+    
+cdef extern from *: # actually defined in private header kinsol_impl.h
+    cdef struct KINMemRec:
+
+        realtype kin_uround        #/* machine epsilon (or unit roundoff error) 
+				 #(defined in sundials_types.h)                */
+
+        #/* problem specification data */
+
+        #KINSysFn kin_func;           /* nonlinear system function implementation     */
+        #void *kin_user_data;         /* work space available to func routine         */
+        realtype kin_fnormtol #      /* stopping tolerance on L2-norm of function
+                    		#		  value                                        */
+        realtype kin_scsteptol  #    /* scaled step length tolerance                 */
+        int kin_globalstrategy  #    /* choices are KIN_NONE and KIN_LINESEARCH      */
+        int kin_printfl         #    /* level of verbosity of output                 */
+        long int kin_mxiter     #    /* maximum number of nonlinear iterations       */
+    

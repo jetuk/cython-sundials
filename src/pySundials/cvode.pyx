@@ -102,7 +102,7 @@ cdef class Cvode(BaseCvode):
         if self._nrtfn < 1:
             raise CVodeError('Root finding not enabled (nrtfn < 1)')
             
-        cdef int[::1] roots = np.empty( self._nrtfn, dtype=int )
+        cdef int[::1] roots = np.empty( self._nrtfn, dtype=np.int32 )
         
         ret = cvode.CVodeGetRootInfo(self._cv, &roots[0])
         if ret == cvode.CV_SUCCESS:
@@ -229,21 +229,29 @@ cdef int _CvRootFn(sun.realtype t, sun.N_Vector y, sun.realtype *gout,
     cdef Py_ssize_t N = obj.nrtfn
     cdef np.float64_t[::1] pygout = <np.float64_t [:N]> gout
     
-    return obj.RootFn(t, pyy, pygout)
+    try:
+        return obj.RootFn(t, pyy, pygout)
+    except Exception:
+        return -1
     
 cdef int _CvDlsDenseJacFn(long int N, sun.realtype t,
 			       sun.N_Vector y, sun.N_Vector fy, 
 			       sun.DlsMat Jac, void *user_data,
 			       sun.N_Vector tmp1, sun.N_Vector tmp2, sun.N_Vector tmp3):
-            
-    raise NotImplementedError("Waiting on Cython wrapper of DlsMat")
+    try:
+        raise NotImplementedError("Waiting on Cython wrapper of DlsMat")
+    except Exception:
+        return -1
     
 cdef int _CvDlsBandJacFn(long int N, long int mupper, long int mlower,
 			      sun.realtype t, sun.N_Vector y, sun.N_Vector fy, 
 			      sun.DlsMat Jac, void *user_data,
 			      sun.N_Vector tmp1, sun.N_Vector tmp2, sun.N_Vector tmp3):
                   
-    raise NotImplementedError("Waiting on Cython wrapper of DlsMat")       
+    try:
+        raise NotImplementedError("Waiting on Cython wrapper of DlsMat")       
+    except Exception:
+        return -1
     
     
 cdef int _CvSpilsJacTimesVecFn(sun.N_Vector v, sun.N_Vector Jv, sun.realtype t,
@@ -260,7 +268,11 @@ cdef int _CvSpilsJacTimesVecFn(sun.N_Vector v, sun.N_Vector Jv, sun.realtype t,
     pyfy = <object>fy.content
     pytmp = <object>tmp.content
     
-    return obj.JacTimesVec(pyv, pyJv, t, pyy, pyfy, pytmp )
+    
+    try:
+        return obj.JacTimesVec(pyv, pyJv, t, pyy, pyfy, pytmp )
+    except Exception:
+        return -1
     
     
 
@@ -285,7 +297,10 @@ cdef int _CvSpilsPrecSetupFn(sun.realtype t, sun.N_Vector y, sun.N_Vector fy,
     pyvtemp2 = <object>tmp2.content
     pyvtemp2 = <object>tmp3.content
     
-    return obj.SpilsPrecSetup(t, pyy, pyfy)
+    try:
+        return obj.SpilsPrecSetup(t, pyy, pyfy)
+    except Exception:
+        return -1
     
 cdef int _CvSpilsPrecSolveFn(sun.realtype t, sun.N_Vector y, sun.N_Vector fy,
                                       sun.N_Vector r, sun.N_Vector z,
@@ -301,4 +316,7 @@ cdef int _CvSpilsPrecSolveFn(sun.realtype t, sun.N_Vector y, sun.N_Vector fy,
     pyz = <object>z.content
     pytmp = <object>tmp.content
     
-    return obj.SpilsPrecSolve(t, pyy, pyfy, pyr, pyz, pytmp)     
+    try:
+        return obj.SpilsPrecSolve(t, pyy, pyfy, pyr, pyz, pytmp)     
+    except Exception:
+        return -1

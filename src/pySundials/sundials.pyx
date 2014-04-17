@@ -18,8 +18,21 @@ np.import_array() # initialize C API to call PyArray_SimpleNewFromData
 import cython
 
 
-
-
-
 include "Nvector.pxi"
 
+
+
+# Cython wrapper of DlsMat
+
+cdef class pyDlsMat:
+        
+    def __setitem__(self, index, sun.realtype value ):
+        cdef long int i = index[0]
+        cdef long int j = index[1]
+        
+        if self._m.type == sun.SUNDIALS_DENSE:
+            self._m.cols[j][i] = value
+            #sun.DENSE_ELEM(self._m, index[0], index[1]) = value
+    
+    
+        

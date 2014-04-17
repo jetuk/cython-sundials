@@ -104,7 +104,7 @@ class Roberts(Cvode):
         
         return 0
         
-    def DlsDenseJacFn(self, N, u, fu, J, tmp1, tmp2):
+    def DlsDenseJacFn(self, N, t, u, fu, J, tmp1, tmp2, tmp3):
         """
         Jacobian routine. Compute J(t,y) = df/dy
         
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
     # Call CVDense to specify the CVDENSE dense linear solver   
     # Set the Jacobian routine to Jac (user-supplied) 
-    cvode_mem.setupDenseLinearSolver( NEQ, user_jac=False )
+    cvode_mem.setupDenseLinearSolver( NEQ, user_jac=True )
   
 
 

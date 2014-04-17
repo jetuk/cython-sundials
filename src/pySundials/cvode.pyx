@@ -1,7 +1,7 @@
 cimport libsundials as sun
 cimport libcvode as cvode
 
-from sundials cimport N_Vector
+from sundials cimport N_Vector, pyDlsMat
 
 from libc.stdlib cimport abort, malloc, free
 from cpython cimport Py_INCREF, Py_DECREF
@@ -238,10 +238,23 @@ cdef int _CvDlsDenseJacFn(long int N, sun.realtype t,
 			       sun.N_Vector y, sun.N_Vector fy, 
 			       sun.DlsMat Jac, void *user_data,
 			       sun.N_Vector tmp1, sun.N_Vector tmp2, sun.N_Vector tmp3):
-    try:
-        raise NotImplementedError("Waiting on Cython wrapper of DlsMat")
-    except Exception:
-        return -1
+              
+    cdef object obj = <object>user_data              
+              
+    pyy = <object>y.content
+    pyfy = <object>fy.content
+    pytmp1 = <object>tmp1.content
+    pytmp2 = <object>tmp2.content
+    pytmp3 = <object>tmp3.content
+    
+    pyJ = pyDlsMat()
+    pyJ._m = Jac
+              
+    #try:
+    return obj.DlsDenseJacFn(N, t, pyy, pyfy, pyJ, pytmp1, pytmp2, pytmp3)
+        #raise NotImplementedError("Waiting on Cython wrapper of DlsMat")
+    #except Exception:
+    #    return -1
     
 cdef int _CvDlsBandJacFn(long int N, long int mupper, long int mlower,
 			      sun.realtype t, sun.N_Vector y, sun.N_Vector fy, 

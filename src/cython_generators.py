@@ -98,6 +98,9 @@ def createKinsolProperties(filename ):
     
     module = 'kinsol'
     mem_ptr = 'self._kn'
+
+
+    
     setter_success = 'KIN_SUCCESS'
     setter_errors={
         'KIN_MEM_NULL':"KINSOL memory pointer is NULL",
@@ -150,6 +153,111 @@ cdef class BaseKinsol:
     fh.write(s)
     fh.close()
     
+def createCvodeProperties(filename, ):
+    module = 'cvode'
+    mem_ptr = 'self._cv'
+    
+    getter_success = 'CV_SUCCESS'
+    getter_errors = {
+        'CV_MEM_NULL':'CVODE memory pointer is NULL',
+        'CV_NO_SLDET':'Stability limit was not turned on',
+    }   
+    
+    get_properties = (    
+        ('workSpace', [('lenrw', 'long int'),('leniw','long int')],'CVodeGetWorkSpace'),
+        ('numSteps', [('nsteps', 'long int'),], 'CVodeGetNumSteps'),
+        ('numRhsEvals', [('nfevals', 'long int'),], 'CVodeGetNumRhsEvals' ),
+        ('numLinSolvSetups', [('nlinsetups', 'long int'),], 'CVodeGetNumLinSolvSetups'),
+        ('numErrTestFails', [('netfails', 'long int'),], 'CVodeGetNumErrTestFails'),
+        ('lastOrder', [('qlast', 'int'),], 'CVodeGetLastOrder'),
+        ('currentOrder', [('qcur', 'int'),], 'CVodeGetCurrentOrder'),
+        ('numStabLimOrderReds', [('nslred', 'long int'),], 'CVodeGetNumStabLimOrderReds'),
+        ('actualInitStep', [('hinused', 'sun.realtype'),], 'CVodeGetActualInitStep'),
+        ('lastStep', [('hinused', 'sun.realtype'),], 'CVodeGetLastStep'),
+        ('currentStep', [('hcur', 'sun.realtype'),], 'CVodeGetCurrentStep'),
+        ('currentTime', [('tcur', 'sun.realtype'),], 'CVodeGetCurrentTime'),
+        ('tolScaleFactor', [('tolsfac', 'sun.realtype'),], 'CVodeGetTolScaleFactor'),
+        ('numGEvals', [('ngevals', 'long int'),], 'CVodeGetNumGEvals'),
+        ('numNonlinSolvIters', [('nniters', 'long int'),], 'CVodeGetNumNonlinSolvIters'),
+        ('numNonlinSolvConvFails', [('nncfails', 'long int'),], 'CVodeGetNumNonlinSolvConvFails'),
+        ('dlsWorkSpace', [('lenrwLS', 'long int'),('leniwLS', 'long int'),], 'CVDlsGetWorkSpace'),
+        ('dlsNumJacEvals', [('njevals', 'long int'),], 'CVDlsGetNumJacEvals'),
+        ('dlsNumRhsEvals', [('nfevalsLS', 'long int'),], 'CVDlsGetNumRhsEvals'),
+        ('dlsLastFlag', [('flag', 'long int'),], 'CVDlsGetLastFlag'), 
+    
+    )
+        
+    
+    setter_success = 'CV_SUCCESS'
+    setter_errors={
+        'CV_MEM_NULL':"CVODE memory pointer is NULL",
+        'CV_ILL_INPUT':"Illegal value"}   
+    
+    set_properties = (
+        ('maxOrd', [('maxord','int'),], 'CVodeSetMaxOrd'),
+        ('maxHnilWarns', [('mxhnil','int'),], 'CVodeSetMaxHnilWarns'),
+        ('stabLimDet', [('stldet', 'sun.booleantype'),], 'CVodeSetStabLimDet'),
+        ('initStep', [('hin','sun.realtype'),], 'CVodeSetInitStep'),
+        ('minStep', [('hmin', 'sun.realtype'),], 'CVodeSetMinStep'),
+        ('maxStep', [('hmax', 'sun.realtype'),], 'CVodeSetMaxStep'),
+        ('stopTime', [('tstop', 'sun.realtype'),], 'CVodeSetStopTime'),
+        ('maxErrTestFails', [('maxnef', 'int'),], 'CVodeSetMaxErrTestFails'),
+        ('maxNonlinIters', [('maxcor', 'int'),], 'CVodeSetMaxNonlinIters'),
+        ('maxConvFails', [('maxncf', 'int'),], 'CVodeSetMaxConvFails'),
+        ('nonlinConvCoef', [('nlscoef', 'sun.realtype'),], 'CVodeSetNonlinConvCoef'),
+        ('iterType', [('iter', 'int'),], 'CVodeSetIterType'),
+
+    )
+
+
+    s = """
+
+cdef class BaseCvode:
+    
+    def __cinit__(self, *args, **kwds): 
+        multistep = kwds.pop('multistep', 'bdf')
+        iteration = kwds.pop('iteration', 'functional')
+                     
+        if multistep == 'bdf':
+            self._ms = cvode.CV_BDF
+        elif multistep == 'adams':
+            self._ms = cvode.CV_ADAMS
+        else:
+            raise ValueError
+            
+        if iteration == 'functional':
+            self._it = cvode.CV_FUNCTIONAL
+        elif iteration == 'newton':
+            self._it = cvode.CV_NEWTON
+        else:
+            raise ValueError
+            
+        
+        self._cv = cvode.CVodeCreate(self._ms, self._it)       
+        if not self._cv:
+            raise MemoryError
+        
+        ret = cvode.CVodeSetUserData(self._cv, <void *>self)   
+
+
+    """
+    s += "\n"
+    
+    for name,variables,func in get_properties:
+        s += propertyGenerator(name,variables,module,mem_ptr,getter=func,
+                               getter_success=getter_success,getter_errors=getter_errors)
+        s += "\n"    
+    
+    for name,variables,func in set_properties:
+        s += propertyGenerator(name,variables,module,mem_ptr,setter=func,
+                               setter_success=setter_success,setter_errors=setter_errors)
+        s += "\n"
+    
+    
+    
+    fh = open(filename, 'wb')
+    fh.write(s)
+    fh.close()
     
 if __name__ == '__main__':
     

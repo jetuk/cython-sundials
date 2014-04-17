@@ -3,14 +3,14 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
-from cython_generators import createKinsolProperties
+from cython_generators import createKinsolProperties, createCvodeProperties
 import os
 import numpy as np
 
 print np.get_include()
 
-sundials_lib = '.'#~/.local/lib/'
-sundials_inc = '.'
+sundials_lib = r'D:\apps\sundials-2.5.0\lib'#~/.local/lib/'
+sundials_inc = r'D:\apps\sundials-2.5.0\include'
 #sundials_lib = r'D:\apps\sundials-2.5.0\lib'
 #sundials_inc = r'D:\apps\sundials-2.5.0\include'
 
@@ -27,6 +27,7 @@ sundials_inc = '.'
 #os.utime("kinsol.pyx", None
 
 createKinsolProperties(os.path.join('pySundials','kinsol_properties.pxi'))
+createCvodeProperties(os.path.join('pySundials','cvode_properties.pxi'))
 
 debug = False
 if debug:
@@ -35,7 +36,8 @@ else:
     compile_args = ["-O2",]
     
     
-extra_libraries = ['lapack','blas']
+#extra_libraries = ['lapack','blas']
+extra_libraries = []
 
 setup(
     name='pySundials',

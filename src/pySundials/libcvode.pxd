@@ -761,6 +761,290 @@ cdef extern from "cvode/cvode.h":
 cdef extern from "cvode/cvode_dense.h":
     int CVDense(void *cvode_mem, long int N)
     
+cdef extern from "cvode/cvode_band.h":
+#    /*
+#     * -----------------------------------------------------------------
+#     * Function : CVBand
+#     * -----------------------------------------------------------------
+#     * A call to the CVBand function links the main CVODE integrator
+#     * with the CVBAND linear solver.
+#     *
+#     * cvode_mem is the pointer to the integrator memory returned by
+#     *           CVodeCreate.
+#     *
+#     * N is the size of the ODE system.
+#     *
+#     * mupper is the upper bandwidth of the band Jacobian
+#     *        approximation.
+#     *
+#     * mlower is the lower bandwidth of the band Jacobian
+#     *        approximation.
+#     *
+#     * The return value of CVBand is one of:
+#     *    CVDLS_SUCCESS   if successful
+#     *    CVDLS_MEM_NULL  if the cvode memory was NULL
+#     *    CVDLS_MEM_FAIL  if there was a memory allocation failure
+#     *    CVDLS_ILL_INPUT if a required vector operation is missing or
+#     *                       if a bandwidth has an illegal value.
+#     * -----------------------------------------------------------------
+#     */
+
+    int CVBand(void *cvode_mem, long int N, long int mupper, long int mlower)
+    
+cdef extern from "cvode/cvode_direct.h":
+#/*
+# * =================================================================
+# *              C V D I R E C T     C O N S T A N T S
+# * =================================================================
+# */
+#
+#/* 
+# * -----------------------------------------------------------------
+# * CVDLS return values 
+# * -----------------------------------------------------------------
+# */
+#
+    enum: CVDLS_SUCCES
+    enum: CVDLS_MEM_NULL
+    enum: CVDLS_LMEM_NULL
+    enum: CVDLS_ILL_INPUT
+    enum: CVDLS_MEM_FAIL
+#
+#/* Additional last_flag values */
+#
+    enum: CVDLS_JACFUNC_UNRECVR
+    enum: CVDLS_JACFUNC_RECVR
+#
+#/*
+# * =================================================================
+# *              F U N C T I O N   T Y P E S
+# * =================================================================
+# */
+#
+#/*
+# * -----------------------------------------------------------------
+# * Type: CVDlsDenseJacFn
+# * -----------------------------------------------------------------
+# *
+# * A dense Jacobian approximation function Jac must be of type 
+# * CVDlsDenseJacFn. Its parameters are:
+# *
+# * N   is the problem size.
+# *
+# * Jac is the dense matrix (of type DlsMat) that will be loaded
+# *     by a CVDlsDenseJacFn with an approximation to the Jacobian 
+# *     matrix J = (df_i/dy_j) at the point (t,y). 
+# *
+# * t   is the current value of the independent variable.
+# *
+# * y   is the current value of the dependent variable vector,
+# *     namely the predicted value of y(t).
+# *
+# * fy  is the vector f(t,y).
+# *
+# * user_data is a pointer to user data - the same as the user_data
+# *     parameter passed to CVodeSetFdata.
+# *
+# * tmp1, tmp2, and tmp3 are pointers to memory allocated for
+# * vectors of length N which can be used by a CVDlsDenseJacFn
+# * as temporary storage or work space.
+# *
+# * A CVDlsDenseJacFn should return 0 if successful, a positive 
+# * value if a recoverable error occurred, and a negative value if 
+# * an unrecoverable error occurred.
+# *
+# * -----------------------------------------------------------------
+# *
+# * NOTE: The following are two efficient ways to load a dense Jac:         
+# * (1) (with macros - no explicit data structure references)      
+# *     for (j=0; j < Neq; j++) {                                  
+# *       col_j = DENSE_COL(Jac,j);                                 
+# *       for (i=0; i < Neq; i++) {                                
+# *         generate J_ij = the (i,j)th Jacobian element           
+# *         col_j[i] = J_ij;                                       
+# *       }                                                        
+# *     }                                                          
+# * (2) (without macros - explicit data structure references)      
+# *     for (j=0; j < Neq; j++) {                                  
+# *       col_j = (Jac->data)[j];                                   
+# *       for (i=0; i < Neq; i++) {                                
+# *         generate J_ij = the (i,j)th Jacobian element           
+# *         col_j[i] = J_ij;                                       
+# *       }                                                        
+# *     }                                                          
+# * A third way, using the DENSE_ELEM(A,i,j) macro, is much less   
+# * efficient in general.  It is only appropriate for use in small 
+# * problems in which efficiency of access is NOT a major concern. 
+# *                                                                
+# * NOTE: If the user's Jacobian routine needs other quantities,   
+# *     they are accessible as follows: hcur (the current stepsize)
+# *     and ewt (the error weight vector) are accessible through   
+# *     CVodeGetCurrentStep and CVodeGetErrWeights, respectively 
+# *     (see cvode.h). The unit roundoff is available as 
+# *     UNIT_ROUNDOFF defined in sundials_types.h.
+# *
+# * -----------------------------------------------------------------
+# */
+#  
+#  
+    ctypedef int (*CVDlsDenseJacFn)(long int N, realtype t,
+			       N_Vector y, N_Vector fy, 
+			       DlsMat Jac, void *user_data,
+			       N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+#  
+#/*
+# * -----------------------------------------------------------------
+# * Type: CVDlsBandJacFn
+# * -----------------------------------------------------------------
+# *
+# * A band Jacobian approximation function Jac must have the
+# * prototype given below. Its parameters are:
+# *
+# * N is the length of all vector arguments.
+# *
+# * mupper is the upper half-bandwidth of the approximate banded
+# * Jacobian. This parameter is the same as the mupper parameter
+# * passed by the user to the linear solver initialization function.
+# *
+# * mlower is the lower half-bandwidth of the approximate banded
+# * Jacobian. This parameter is the same as the mlower parameter
+# * passed by the user to the linear solver initialization function.
+# *
+# * t is the current value of the independent variable.
+# *
+# * y is the current value of the dependent variable vector,
+# *      namely the predicted value of y(t).
+# *
+# * fy is the vector f(t,y).
+# *
+# * Jac is the band matrix (of type DlsMat) that will be loaded
+# * by a CVDlsBandJacFn with an approximation to the Jacobian matrix
+# * Jac = (df_i/dy_j) at the point (t,y).
+# * Three efficient ways to load J are:
+# *
+# * (1) (with macros - no explicit data structure references)
+# *    for (j=0; j < n; j++) {
+# *       col_j = BAND_COL(Jac,j);
+# *       for (i=j-mupper; i <= j+mlower; i++) {
+# *         generate J_ij = the (i,j)th Jacobian element
+# *         BAND_COL_ELEM(col_j,i,j) = J_ij;
+# *       }
+# *     }
+# *
+# * (2) (with BAND_COL macro, but without BAND_COL_ELEM macro)
+# *    for (j=0; j < n; j++) {
+# *       col_j = BAND_COL(Jac,j);
+# *       for (k=-mupper; k <= mlower; k++) {
+# *         generate J_ij = the (i,j)th Jacobian element, i=j+k
+# *         col_j[k] = J_ij;
+# *       }
+# *     }
+# *
+# * (3) (without macros - explicit data structure references)
+# *     offset = Jac->smu;
+# *     for (j=0; j < n; j++) {
+# *       col_j = ((Jac->data)[j])+offset;
+# *       for (k=-mupper; k <= mlower; k++) {
+# *         generate J_ij = the (i,j)th Jacobian element, i=j+k
+# *         col_j[k] = J_ij;
+# *       }
+# *     }
+# * Caution: Jac->smu is generally NOT the same as mupper.
+# *
+# * The BAND_ELEM(A,i,j) macro is appropriate for use in small
+# * problems in which efficiency of access is NOT a major concern.
+# *
+# * user_data is a pointer to user data - the same as the user_data
+# *          parameter passed to CVodeSetFdata.
+# *
+# * NOTE: If the user's Jacobian routine needs other quantities,
+# *     they are accessible as follows: hcur (the current stepsize)
+# *     and ewt (the error weight vector) are accessible through
+# *     CVodeGetCurrentStep and CVodeGetErrWeights, respectively
+# *     (see cvode.h). The unit roundoff is available as
+# *     UNIT_ROUNDOFF defined in sundials_types.h
+# *
+# * tmp1, tmp2, and tmp3 are pointers to memory allocated for
+# * vectors of length N which can be used by a CVDlsBandJacFn
+# * as temporary storage or work space.
+# *
+# * A CVDlsBandJacFn should return 0 if successful, a positive value
+# * if a recoverable error occurred, and a negative value if an 
+# * unrecoverable error occurred.
+# * -----------------------------------------------------------------
+# */
+#
+    ctypedef int (*CVDlsBandJacFn)(long int N, long int mupper, long int mlower,
+			      realtype t, N_Vector y, N_Vector fy, 
+			      DlsMat Jac, void *user_data,
+			      N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+#
+#/*
+# * =================================================================
+# *            E X P O R T E D    F U N C T I O N S 
+# * =================================================================
+# */
+#
+#/*
+# * -----------------------------------------------------------------
+# * Optional inputs to the CVDLS linear solver
+# * -----------------------------------------------------------------
+# *
+# * CVDlsSetDenseJacFn specifies the dense Jacobian approximation
+# * routine to be used for a direct dense linear solver.
+# *
+# * CVDlsSetBandJacFn specifies the band Jacobian approximation
+# * routine to be used for a direct band linear solver.
+# *
+# * By default, a difference quotient approximation, supplied with
+# * the solver is used.
+# *
+# * The return value is one of:
+# *    CVDLS_SUCCESS   if successful
+# *    CVDLS_MEM_NULL  if the CVODE memory was NULL
+# *    CVDLS_LMEM_NULL if the linear solver memory was NULL
+# * -----------------------------------------------------------------
+# */
+#
+    int CVDlsSetDenseJacFn(void *cvode_mem, CVDlsDenseJacFn jac)
+    int CVDlsSetBandJacFn(void *cvode_mem, CVDlsBandJacFn jac)
+#
+#/*
+# * -----------------------------------------------------------------
+# * Optional outputs from the CVDLS linear solver
+# * -----------------------------------------------------------------
+# *
+# * CVDlsGetWorkSpace   returns the real and integer workspace used
+# *                     by the direct linear solver.
+# * CVDlsGetNumJacEvals returns the number of calls made to the
+# *                     Jacobian evaluation routine jac.
+# * CVDlsGetNumRhsEvals returns the number of calls to the user
+# *                     f routine due to finite difference Jacobian
+# *                     evaluation.
+# * CVDlsGetLastFlag    returns the last error flag set by any of
+# *                     the CVDLS interface functions.
+# *
+# * The return value of CVDlsGet* is one of:
+# *    CVDLS_SUCCESS   if successful
+# *    CVDLS_MEM_NULL  if the CVODE memory was NULL
+# *    CVDLS_LMEM_NULL if the linear solver memory was NULL
+# * -----------------------------------------------------------------
+# */
+#
+    int CVDlsGetWorkSpace(void *cvode_mem, long int *lenrwLS, long int *leniwLS)
+    int CVDlsGetNumJacEvals(void *cvode_mem, long int *njevals)
+    int CVDlsGetNumRhsEvals(void *cvode_mem, long int *nfevalsLS)
+    int CVDlsGetLastFlag(void *cvode_mem, long int *flag)
+#
+#/*
+# * -----------------------------------------------------------------
+# * The following function returns the name of the constant 
+# * associated with a CVDLS return flag
+# * -----------------------------------------------------------------
+# */
+#
+#SUNDIALS_EXPORT char *CVDlsGetReturnFlagName(long int flag);    
+    
 cdef extern from "cvode/cvode_spils.h":
 #    /*
 #     * -----------------------------------------------------------------
@@ -800,5 +1084,403 @@ cdef extern from "cvode/cvode_spils.h":
     enum: CVSPILS_DGMAX
     enum: CVSPILS_EPLIN
         
+        
+#    /*
+#     * -----------------------------------------------------------------
+#     * Type : CVSpilsPrecSetupFn
+#     * -----------------------------------------------------------------
+#     * The user-supplied preconditioner setup function PrecSetup and
+#     * the user-supplied preconditioner solve function PrecSolve
+#     * together must define left and right preconditoner matrices
+#     * P1 and P2 (either of which may be trivial), such that the
+#     * product P1*P2 is an approximation to the Newton matrix
+#     * M = I - gamma*J.  Here J is the system Jacobian J = df/dy,
+#     * and gamma is a scalar proportional to the integration step
+#     * size h.  The solution of systems P z = r, with P = P1 or P2,
+#     * is to be carried out by the PrecSolve function, and PrecSetup
+#     * is to do any necessary setup operations.
+#     *
+#     * The user-supplied preconditioner setup function PrecSetup
+#     * is to evaluate and preprocess any Jacobian-related data
+#     * needed by the preconditioner solve function PrecSolve.
+#     * This might include forming a crude approximate Jacobian,
+#     * and performing an LU factorization on the resulting
+#     * approximation to M.  This function will not be called in
+#     * advance of every call to PrecSolve, but instead will be called
+#     * only as often as necessary to achieve convergence within the
+#     * Newton iteration.  If the PrecSolve function needs no
+#     * preparation, the PrecSetup function can be NULL.
+#     *
+#     * For greater efficiency, the PrecSetup function may save
+#     * Jacobian-related data and reuse it, rather than generating it
+#     * from scratch.  In this case, it should use the input flag jok
+#     * to decide whether to recompute the data, and set the output
+#     * flag *jcurPtr accordingly.
+#     *
+#     * Each call to the PrecSetup function is preceded by a call to
+#     * the RhsFn f with the same (t,y) arguments.  Thus the PrecSetup
+#     * function can use any auxiliary data that is computed and
+#     * saved by the f function and made accessible to PrecSetup.
+#     *
+#     * A function PrecSetup must have the prototype given below.
+#     * Its parameters are as follows:
+#     *
+#     * t       is the current value of the independent variable.
+#     *
+#     * y       is the current value of the dependent variable vector,
+#     *          namely the predicted value of y(t).
+#     *
+#     * fy      is the vector f(t,y).
+#     *
+#     * jok     is an input flag indicating whether Jacobian-related
+#     *         data needs to be recomputed, as follows:
+#     *           jok == FALSE means recompute Jacobian-related data
+#     *                  from scratch.
+#     *           jok == TRUE  means that Jacobian data, if saved from
+#     *                  the previous PrecSetup call, can be reused
+#     *                  (with the current value of gamma).
+#     *         A Precset call with jok == TRUE can only occur after
+#     *         a call with jok == FALSE.
+#     *
+#     * jcurPtr is a pointer to an output integer flag which is
+#     *         to be set by PrecSetup as follows:
+#     *         Set *jcurPtr = TRUE if Jacobian data was recomputed.
+#     *         Set *jcurPtr = FALSE if Jacobian data was not recomputed,
+#     *                        but saved data was reused.
+#     *
+#     * gamma   is the scalar appearing in the Newton matrix.
+#     *
+#     * user_data  is a pointer to user data - the same as the user_data
+#     *         parameter passed to the CVodeSetUserData function.
+#     *
+#     * tmp1, tmp2, and tmp3 are pointers to memory allocated
+#     *                      for N_Vectors which can be used by
+#     *                      CVSpilsPrecSetupFn as temporary storage or
+#     *                      work space.
+#     *
+#     * NOTE: If the user's preconditioner needs other quantities,
+#     *       they are accessible as follows: hcur (the current stepsize)
+#     *       and ewt (the error weight vector) are accessible through
+#     *       CVodeGetCurrentStep and CVodeGetErrWeights, respectively).
+#     *       The unit roundoff is available as UNIT_ROUNDOFF defined in
+#     *       sundials_types.h.
+#     *
+#     * Returned value:
+#     * The value to be returned by the PrecSetup function is a flag
+#     * indicating whether it was successful.  This value should be
+#     *   0   if successful,
+#     *   > 0 for a recoverable error (step will be retried),
+#     *   < 0 for an unrecoverable error (integration is halted).
+#     * -----------------------------------------------------------------
+#     */
+#    
+    ctypedef int (*CVSpilsPrecSetupFn)(realtype t, N_Vector y, N_Vector fy,
+                                      booleantype jok, booleantype *jcurPtr,
+                                      realtype gamma, void *user_data,
+                                      N_Vector tmp1, N_Vector tmp2,
+                                      N_Vector tmp3)
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * Type : CVSpilsPrecSolveFn
+#     * -----------------------------------------------------------------
+#     * The user-supplied preconditioner solve function PrecSolve
+#     * is to solve a linear system P z = r in which the matrix P is
+#     * one of the preconditioner matrices P1 or P2, depending on the
+#     * type of preconditioning chosen.
+#     *
+#     * A function PrecSolve must have the prototype given below.
+#     * Its parameters are as follows:
+#     *
+#     * t      is the current value of the independent variable.
+#     *
+#     * y      is the current value of the dependent variable vector.
+#     *
+#     * fy     is the vector f(t,y).
+#     *
+#     * r      is the right-hand side vector of the linear system.
+#     *
+#     * z      is the output vector computed by PrecSolve.
+#     *
+#     * gamma  is the scalar appearing in the Newton matrix.
+#     *
+#     * delta  is an input tolerance for use by PSolve if it uses
+#     *        an iterative method in its solution.  In that case,
+#     *        the residual vector Res = r - P z of the system
+#     *        should be made less than delta in weighted L2 norm,
+#     *        i.e., sqrt [ Sum (Res[i]*ewt[i])^2 ] < delta.
+#     *        Note: the error weight vector ewt can be obtained
+#     *        through a call to the routine CVodeGetErrWeights.
+#     *
+#     * lr     is an input flag indicating whether PrecSolve is to use
+#     *        the left preconditioner P1 or right preconditioner
+#     *        P2: lr = 1 means use P1, and lr = 2 means use P2.
+#     *
+#     * user_data  is a pointer to user data - the same as the user_data
+#     *         parameter passed to the CVodeSetUserData function.
+#     *
+#     * tmp    is a pointer to memory allocated for an N_Vector
+#     *        which can be used by PSolve for work space.
+#     *
+#     * Returned value:
+#     * The value to be returned by the PrecSolve function is a flag
+#     * indicating whether it was successful.  This value should be
+#     *   0 if successful,
+#     *   positive for a recoverable error (step will be retried),
+#     *   negative for an unrecoverable error (integration is halted).
+#     * -----------------------------------------------------------------
+#     */
+#    
+    ctypedef int (*CVSpilsPrecSolveFn)(realtype t, N_Vector y, N_Vector fy,
+                                      N_Vector r, N_Vector z,
+                                      realtype gamma, realtype delta,
+                                      int lr, void *user_data, N_Vector tmp)
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * Type : CVSpilsJacTimesVecFn
+#     * -----------------------------------------------------------------
+#     * The user-supplied function jtimes is to generate the product
+#     * J*v for given v, where J is the Jacobian df/dy, or an
+#     * approximation to it, and v is a given vector. It should return
+#     * 0 if successful a positive value for a recoverable error or 
+#     * a negative value for an unrecoverable failure.
+#     *
+#     * A function jtimes must have the prototype given below. Its
+#     * parameters are as follows:
+#     *
+#     *   v        is the N_Vector to be multiplied by J.
+#     *
+#     *   Jv       is the output N_Vector containing J*v.
+#     *
+#     *   t        is the current value of the independent variable.
+#     *
+#     *   y        is the current value of the dependent variable
+#     *            vector.
+#     *
+#     *   fy       is the vector f(t,y).
+#     *
+#     *   user_data   is a pointer to user data, the same as the user_data
+#     *            parameter passed to the CVodeSetUserData function.
+#     *
+#     *   tmp      is a pointer to memory allocated for an N_Vector
+#     *            which can be used by Jtimes for work space.
+#     * -----------------------------------------------------------------
+#     */
+#    
+    ctypedef int (*CVSpilsJacTimesVecFn)(N_Vector v, N_Vector Jv, realtype t,
+                                        N_Vector y, N_Vector fy,
+                                        void *user_data, N_Vector tmp)
+#    
+#    
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * Optional inputs to the CVSPILS linear solver
+#     * -----------------------------------------------------------------
+#     *
+#     * CVSpilsSetPrecType resets the type of preconditioner, pretype,
+#     *                from the value previously set.
+#     *                This must be one of PREC_NONE, PREC_LEFT, 
+#     *                PREC_RIGHT, or PREC_BOTH.
+#     *
+#     * CVSpilsSetGSType specifies the type of Gram-Schmidt
+#     *                orthogonalization to be used. This must be one of
+#     *                the two enumeration constants MODIFIED_GS or
+#     *                CLASSICAL_GS defined in iterative.h. These correspond
+#     *                to using modified Gram-Schmidt and classical
+#     *                Gram-Schmidt, respectively.
+#     *                Default value is MODIFIED_GS.
+#     *
+#     * CVSpilsSetMaxl resets the maximum Krylov subspace size, maxl,
+#     *                from the value previously set.
+#     *                An input value <= 0, gives the default value.
+#     *
+#     * CVSpilsSetEpsLin specifies the factor by which the tolerance on
+#     *                the nonlinear iteration is multiplied to get a
+#     *                tolerance on the linear iteration.
+#     *                Default value is 0.05.
+#     *
+#     * CVSpilsSetPreconditioner specifies the PrecSetup and PrecSolve functions.
+#     *                Default is NULL for both arguments (no preconditioning)
+#     *
+#     * CVSpilsSetJacTimesVecFn specifies the jtimes function. Default is to 
+#     *                use an internal finite difference approximation routine.
+#     *
+#     * The return value of CVSpilsSet* is one of:
+#     *    CVSPILS_SUCCESS   if successful
+#     *    CVSPILS_MEM_NULL  if the cvode memory was NULL
+#     *    CVSPILS_LMEM_NULL if the linear solver memory was NULL
+#     *    CVSPILS_ILL_INPUT if an input has an illegal value
+#     * -----------------------------------------------------------------
+#     */
+#    
+    int CVSpilsSetPrecType(void *cvode_mem, int pretype)
+    int CVSpilsSetGSType(void *cvode_mem, int gstype)
+    int CVSpilsSetMaxl(void *cvode_mem, int maxl)
+    int CVSpilsSetEpsLin(void *cvode_mem, realtype eplifac)
+    int CVSpilsSetPreconditioner(void *cvode_mem, 
+                                                 CVSpilsPrecSetupFn pset,
+                                                 CVSpilsPrecSolveFn psolve)
+    int CVSpilsSetJacTimesVecFn(void *cvode_mem, 
+                                                CVSpilsJacTimesVecFn jtv)
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * Optional outputs from the CVSPILS linear solver
+#     * -----------------------------------------------------------------
+#     * CVSpilsGetWorkSpace returns the real and integer workspace used
+#     *                by the SPILS module.
+#     *
+#     * CVSpilsGetNumPrecEvals returns the number of preconditioner
+#     *                 evaluations, i.e. the number of calls made
+#     *                 to PrecSetup with jok==FALSE.
+#     *
+#     * CVSpilsGetNumPrecSolves returns the number of calls made to
+#     *                 PrecSolve.
+#     *
+#     * CVSpilsGetNumLinIters returns the number of linear iterations.
+#     *
+#     * CVSpilsGetNumConvFails returns the number of linear
+#     *                 convergence failures.
+#     *
+#     * CVSpilsGetNumJtimesEvals returns the number of calls to jtimes.
+#     *
+#     * CVSpilsGetNumRhsEvals returns the number of calls to the user
+#     *                 f routine due to finite difference Jacobian
+#     *                 times vector evaluation.
+#     *
+#     * CVSpilsGetLastFlag returns the last error flag set by any of
+#     *                 the CVSPILS interface functions.
+#     *
+#     * The return value of CVSpilsGet* is one of:
+#     *    CVSPILS_SUCCESS   if successful
+#     *    CVSPILS_MEM_NULL  if the cvode memory was NULL
+#     *    CVSPILS_LMEM_NULL if the linear solver memory was NULL
+#     * -----------------------------------------------------------------
+#     */
+#    
+    int CVSpilsGetWorkSpace(void *cvode_mem, long int *lenrwLS, long int *leniwLS)
+    int CVSpilsGetNumPrecEvals(void *cvode_mem, long int *npevals)
+    int CVSpilsGetNumPrecSolves(void *cvode_mem, long int *npsolves)
+    int CVSpilsGetNumLinIters(void *cvode_mem, long int *nliters)
+    int CVSpilsGetNumConvFails(void *cvode_mem, long int *nlcfails)
+    int CVSpilsGetNumJtimesEvals(void *cvode_mem, long int *njvevals)
+    int CVSpilsGetNumRhsEvals(void *cvode_mem, long int *nfevalsLS)
+    int CVSpilsGetLastFlag(void *cvode_mem, long int *flag)
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * The following function returns the name of the constant 
+#     * associated with a CVSPILS return flag
+#     * -----------------------------------------------------------------
+#     */
+
+#SUNDIALS_EXPORT char *CVSpilsGetReturnFlagName(long int flag);
+        
 cdef extern from "cvode/cvode_spgmr.h":
+#    /*
+#     * -----------------------------------------------------------------
+#     * Function : CVSpgmr
+#     * -----------------------------------------------------------------
+#     * A call to the CVSpgmr function links the main CVODE integrator
+#     * with the CVSPGMR linear solver.
+#     *
+#     * cvode_mem is the pointer to the integrator memory returned by
+#     *           CVodeCreate.
+#     *
+#     * pretype   is the type of user preconditioning to be done.
+#     *           This must be one of the four enumeration constants
+#     *           PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined 
+#     *           in sundials_iterative.h.
+#     *           These correspond to no preconditioning,
+#     *           left preconditioning only, right preconditioning
+#     *           only, and both left and right preconditioning,
+#     *           respectively.
+#     *
+#     * maxl      is the maximum Krylov dimension. This is an
+#     *           optional input to the CVSPGMR solver. Pass 0 to
+#     *           use the default value CVSPGMR_MAXL=5.
+#     *
+#     * The return value of CVSpgmr is one of:
+#     *    CVSPILS_SUCCESS   if successful
+#     *    CVSPILS_MEM_NULL  if the cvode memory was NULL
+#     *    CVSPILS_MEM_FAIL  if there was a memory allocation failure
+#     *    CVSPILS_ILL_INPUT if a required vector operation is missing
+#     * The above constants are defined in cvode_spils.h
+#     *
+#     * -----------------------------------------------------------------
+#     */
+#    
     int CVSpgmr(void *cvode_mem, int pretype, int maxl)
+    
+    
+cdef extern from "cvode/cvode_spbcgs.h":
+#    /*
+#     * -----------------------------------------------------------------
+#     * Function : CVSpbcg
+#     * -----------------------------------------------------------------
+#     * A call to the CVSpbcg function links the main CVODE integrator
+#     * with the CVSPBCG linear solver.
+#     *
+#     * cvode_mem is the pointer to the integrator memory returned by
+#     *           CVodeCreate.
+#     *
+#     * pretype   is the type of user preconditioning to be done.
+#     *           This must be one of the four enumeration constants
+#     *           PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined
+#     *           in iterative.h. These correspond to no preconditioning,
+#     *           left preconditioning only, right preconditioning
+#     *           only, and both left and right preconditioning,
+#     *           respectively.
+#     *
+#     * maxl      is the maximum Krylov dimension. This is an
+#     *           optional input to the CVSPBCG solver. Pass 0 to
+#     *           use the default value CVSPBCG_MAXL=5.
+#     *
+#     * The return value of CVSpbcg is one of:
+#     *    CVSPILS_SUCCESS   if successful
+#     *    CVSPILS_MEM_NULL  if the cvode memory was NULL
+#     *    CVSPILS_MEM_FAIL  if there was a memory allocation failure
+#     *    CVSPILS_ILL_INPUT if a required vector operation is missing
+#     * The above constants are defined in cvode_spils.h
+#     *
+#     * -----------------------------------------------------------------
+#     */
+#    
+    int CVSpbcg(void *cvode_mem, int pretype, int maxl)
+    
+cdef extern from "cvode/cvode_sptfqmr.h":    
+#    /*
+#     * -----------------------------------------------------------------
+#     * Function : CVSptfqmr
+#     * -----------------------------------------------------------------
+#     * A call to the CVSptfqmr function links the main CVODE integrator
+#     * with the CVSPTFQMR linear solver.
+#     *
+#     * cvode_mem is the pointer to the integrator memory returned by
+#     *           CVodeCreate.
+#     *
+#     * pretype   is the type of user preconditioning to be done.
+#     *           This must be one of the four enumeration constants
+#     *           PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined
+#     *           in iterative.h. These correspond to no preconditioning,
+#     *           left preconditioning only, right preconditioning
+#     *           only, and both left and right preconditioning,
+#     *           respectively.
+#     *
+#     * maxl      is the maximum Krylov dimension. This is an
+#     *           optional input to the CVSPTFQMR solver. Pass 0 to
+#     *           use the default value CVSPILS_MAXL=5.
+#     *
+#     * The return value of CVSptfqmr is one of:
+#     *    CVSPILS_SUCCESS   if successful
+#     *    CVSPILS_MEM_NULL  if the cvode memory was NULL
+#     *    CVSPILS_MEM_FAIL  if there was a memory allocation failure
+#     *    CVSPILS_ILL_INPUT if a required vector operation is missing
+#     * The above constants are defined in cvode_spils.h
+#     *
+#     * -----------------------------------------------------------------
+#     */
+#    
+    int CVSptfqmr(void *cvode_mem, int pretype, int maxl)

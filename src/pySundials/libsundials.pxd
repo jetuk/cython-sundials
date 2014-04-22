@@ -144,6 +144,60 @@ cdef extern from "sundials/sundials_direct.h":
         realtype **cols
         
     ctypedef _DlsMat *DlsMat
+    
+#    /*
+#     * ==================================================================
+#     * Data accessor macros
+#     * ==================================================================
+#     */
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * DENSE_COL and DENSE_ELEM
+#     * -----------------------------------------------------------------
+#     *
+#     * DENSE_COL(A,j) references the jth column of the M-by-N dense
+#     * matrix A, 0 <= j < N. The type of the expression DENSE_COL(A,j) 
+#     * is (realtype *). After the assignment in the usage above, col_j 
+#     * may be treated as an array indexed from 0 to M-1. The (i,j)-th 
+#     * element of A is thus referenced by col_j[i].
+#     *
+#     * DENSE_ELEM(A,i,j) references the (i,j)th element of the dense 
+#     * M-by-N matrix A, 0 <= i < M ; 0 <= j < N.
+#     *
+#     * -----------------------------------------------------------------
+#     */
+#    
+#    #define DENSE_COL(A,j) ((A->cols)[j])
+    void DENSE_COL(DlsMat A, long int j)
+#    #define DENSE_ELEM(A,i,j) ((A->cols)[j][i])
+    void DENSE_ELEM(DlsMat A, long int i, long int j)    
+#    
+#    /*
+#     * -----------------------------------------------------------------
+#     * BAND_COL, BAND_COL_ELEM, and BAND_ELEM
+#     * -----------------------------------------------------------------
+#     *  
+#     * BAND_COL(A,j) references the diagonal element of the jth column 
+#     * of the N by N band matrix A, 0 <= j <= N-1. The type of the 
+#     * expression BAND_COL(A,j) is realtype *. The pointer returned by 
+#     * the call BAND_COL(A,j) can be treated as an array which is 
+#     * indexed from -(A->mu) to (A->ml).
+#     * 
+#     * BAND_COL_ELEM references the (i,j)th entry of the band matrix A 
+#     * when used in conjunction with BAND_COL. The index (i,j) should 
+#     * satisfy j-(A->mu) <= i <= j+(A->ml).
+#     *
+#     * BAND_ELEM(A,i,j) references the (i,j)th element of the M-by-N 
+#     * band matrix A, where 0 <= i,j <= N-1. The location (i,j) should 
+#     * further satisfy j-(A->mu) <= i <= j+(A->ml). 
+#     *
+#     * -----------------------------------------------------------------
+#     */
+#     
+#    #define BAND_COL(A,j) (((A->cols)[j])+(A->s_mu))
+#    #define BAND_COL_ELEM(col_j,i,j) (col_j[(i)-(j)])
+#    #define BAND_ELEM(A,i,j) ((A->cols)[j][(i)-(j)+(A->s_mu)])    
         
 cdef extern from "sundials/sundials_iterative.h":
     #/*

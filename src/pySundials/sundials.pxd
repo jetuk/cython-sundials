@@ -20,3 +20,7 @@ cdef class NvectorMemoryViewDouble5D(N_Vector):
     cdef np.ndarray _data
     cdef object shp
     cdef bint debug
+    
+cdef class pyDlsMat:
+    cdef sun.DlsMat _m
+    

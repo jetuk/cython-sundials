@@ -104,22 +104,22 @@ class Roberts(Cvode):
   
 
 def PrintOutput( t, y1, y2, y3):
-    print "At t = %0.4e      y =%14.6e  %14.6e  %14.6e\n" % ( t, y1, y2, y3)
+    print "At t = %0.4e      y =%14.6e  %14.6e  %14.6e" % ( t, y1, y2, y3)
 
 
 def PrintRootInfo( root_f1, root_f2):
-    print "    rootsfound[] = %3d %3d\n" % (root_f1, root_f2)
+    print "    rootsfound[] = %3d %3d" % (root_f1, root_f2)
 
 
 def PrintFinalStats(cv):
     """
  * Get and print some final statistics
     """
-    print "\nFinal Statistics:\n"
-    print "nst = %-6ld nfe  = %-6ld nsetups = %-6ld nfeLS = %-6ld nje = %ld\n"  % (
+    print "\nFinal Statistics:"
+    print "nst = %-6ld nfe  = %-6ld nsetups = %-6ld nfeLS = %-6ld nje = %ld"  % (
 	   cv.numSteps, cv.numRhsEvals, cv.numLinSolvSetups,
-         cv.numRhsEvals, cv.dlsNumJacEvals)
-    print "nni = %-6ld ncfn = %-6ld netf = %-6ld nge = %ld\n \n" % (
+         cv.dlsNumRhsEvals, cv.dlsNumJacEvals)
+    print "nni = %-6ld ncfn = %-6ld netf = %-6ld nge = %ld\n" % (
 	   cv.numNonlinSolvIters, cv.numNonlinSolvConvFails, 
          cv.numErrTestFails, cv.numGEvals)
 
@@ -181,8 +181,9 @@ if __name__ == '__main__':
             rootsfound = cvode_mem.rootInfo()
             PrintRootInfo(rootsfound[0], rootsfound[1])
             
-        iout += 1
-        tout *= TMULT
+        if flag == 'CV_SUCCESS':
+            iout += 1
+            tout *= TMULT
         
         if iout == NOUT: break
         

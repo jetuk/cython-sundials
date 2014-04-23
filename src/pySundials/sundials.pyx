@@ -78,10 +78,13 @@ cdef class pyDlsMat:
     def __setitem__(self, index, sun.realtype value ):
         cdef long int i = index[0]
         cdef long int j = index[1]
-        
+
         if self._m.type == sun.SUNDIALS_DENSE:
             self._m.cols[j][i] = value
             #sun.DENSE_ELEM(self._m, index[0], index[1]) = value
+        elif self._m.type == sun.SUNDIALS_BAND:
+            assert j-self._m.mu <= i and i <= j+self._m.ml
+            self._m.cols[j][i-j+self._m.s_mu] = value
     
     
         

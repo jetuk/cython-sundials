@@ -162,6 +162,11 @@ class AdvDiff(Cvode):
                 #if (i != MX) BAND_COL_ELEM(kthCol,k+MY,k) = hordc - horac;
                 #if (j != 1)  BAND_COL_ELEM(kthCol,k-1,k)  = verdc;
                 #if (j != MY) BAND_COL_ELEM(kthCol,k+1,k)  = verdc;:
+                J[k,k] = -TWO*(verdc*hordc)
+                if i != 0: J[k-MY,k] = hordc + horac
+                if i != MX-1: J[k+MY,k] = hordc - horac
+                if j != 0: J[k-1,k] = verdc
+                if j != MY-1: J[k+1,k] = verdc
         return 0
 
         
@@ -240,7 +245,7 @@ if __name__ == '__main__':
     
     # Call CVBand to specify the CVBAND band linear solver 
     # Set the user-supplied Jacobian routine Jac 
-    cvode_mem.setupBandLinearSolver( NEQ, MY, MY, user_jac=False)
+    cvode_mem.setupBandLinearSolver( NEQ, MY, MY, user_jac=True)
   
       
     # In loop over output points: call CVode, print results, test for errors 

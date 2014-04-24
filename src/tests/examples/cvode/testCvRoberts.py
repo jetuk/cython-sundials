@@ -34,35 +34,10 @@
 from pySundials.cvode import Cvode
 from pySundials.sundials import NvectorNdarrayFloat64
 
-#include <cvode/cvode.h>             # prototypes for CVODE fcts., consts. 
-#include <nvector/nvector_serial.h>  # serial N_Vector types, fcts., macros 
-#include <cvode/cvode_dense.h>       # prototype for CVDense 
-#include <sundials/sundials_dense.h> # definitions DlsMat DENSE_ELEM 
-#include <sundials/sundials_types.h> # definition of type realtype 
-"""
-# User-defined vector and matrix accessor macros: Ith, IJth 
-
-# These macros are defined in order to write code which exactly matches
-   the mathematical problem description given above.
-
-   Ith(v,i) references the ith component of the vector v, where i is in
-   the range [1..NEQ] and NEQ is defined below. The Ith macro is defined
-   using the N_VIth macro in nvector.h. N_VIth numbers the components of
-   a vector starting from 0.
-
-   IJth(A,i,j) references the (i,j)th element of the dense matrix A, where
-   i and j are in the range [1..NEQ]. The IJth macro is defined using the
-   DENSE_ELEM macro in dense.h. DENSE_ELEM numbers rows and columns of a
-   dense matrix starting from 0. 
-"""   
-
-#define Ith(v,i)    NV_Ith_S(v,i-1)       # Ith numbers components 1..NEQ 
-#define IJth(A,i,j) DENSE_ELEM(A,i-1,j-1) # IJth numbers rows,cols 1..NEQ 
-
 
 # Problem Constants 
 
-NEQ   =3                # number of equations  
+NEQ   = 3                # number of equations  
 Y1    = 1.0             # initial y components 
 Y2    = 0.0
 Y3    = 0.0
@@ -129,22 +104,22 @@ class Roberts(Cvode):
   
 
 def PrintOutput( t, y1, y2, y3):
-    print "At t = %0.4e      y =%14.6e  %14.6e  %14.6e\n" % ( t, y1, y2, y3)
+    print "At t = %0.4e      y =%14.6e  %14.6e  %14.6e" % ( t, y1, y2, y3)
 
 
 def PrintRootInfo( root_f1, root_f2):
-    print "    rootsfound[] = %3d %3d\n" % (root_f1, root_f2)
+    print "    rootsfound[] = %3d %3d" % (root_f1, root_f2)
 
 
 def PrintFinalStats(cv):
     """
  * Get and print some final statistics
     """
-    print "\nFinal Statistics:\n"
-    print "nst = %-6ld nfe  = %-6ld nsetups = %-6ld nfeLS = %-6ld nje = %ld\n"  % (
+    print "\nFinal Statistics:"
+    print "nst = %-6ld nfe  = %-6ld nsetups = %-6ld nfeLS = %-6ld nje = %ld"  % (
 	   cv.numSteps, cv.numRhsEvals, cv.numLinSolvSetups,
-         cv.numRhsEvals, cv.dlsNumJacEvals)
-    print "nni = %-6ld ncfn = %-6ld netf = %-6ld nge = %ld\n \n" % (
+         cv.dlsNumRhsEvals, cv.dlsNumJacEvals)
+    print "nni = %-6ld ncfn = %-6ld netf = %-6ld nge = %ld\n" % (
 	   cv.numNonlinSolvIters, cv.numNonlinSolvConvFails, 
          cv.numErrTestFails, cv.numGEvals)
 
@@ -206,8 +181,9 @@ if __name__ == '__main__':
             rootsfound = cvode_mem.rootInfo()
             PrintRootInfo(rootsfound[0], rootsfound[1])
             
-        iout += 1
-        tout *= TMULT
+        if flag == 'CV_SUCCESS':
+            iout += 1
+            tout *= TMULT
         
         if iout == NOUT: break
         

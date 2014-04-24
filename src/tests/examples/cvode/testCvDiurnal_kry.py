@@ -545,19 +545,11 @@ if __name__ == '__main__':
     print " \n2-species diurnal advection-diffusion problem\n"
     tout = TWOHR
     
-    import pylab
     for iout in range(NOUT):
         ret, t = cvode_mem.Solve(tout, u)
         cvode_mem.PrintOutput(u, t)
         tout += TWOHR
-        
-        pylab.subplot(2,1,1)
-        #pylab.contourf(u.data[:,:,0])
-        pylab.plot(u.data[:,MY/2,0])
-        pylab.subplot(2,1,2)
-        pylab.plot(u.data[:,MY/2,1])
-        pylab.show()
-        
+
 
     cvode_mem.PrintFinalStats()
 

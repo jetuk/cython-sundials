@@ -2,6 +2,9 @@ cdef extern from "sundials/sundials_types.h":
     
     ctypedef double realtype
     ctypedef int booleantype
+    
+    enum: TRUE
+    enum: FALSE
 
 cdef extern from "sundials/sundials_nvector.h":
 
@@ -222,6 +225,24 @@ cdef extern from "sundials/sundials_iterative.h":
     enum: PREC_LEFT
     enum: PREC_RIGHT
     enum: PREC_BOTH 
+    
+    #/*
+    # * -----------------------------------------------------------------
+    # * enum : types of Gram-Schmidt routines                          
+    # * -----------------------------------------------------------------
+    # * MODIFIED_GS  : The iterative solver uses the modified          
+    # *                Gram-Schmidt routine ModifiedGS listed in this  
+    # *                file.                                           
+    # *                                                                
+    # * CLASSICAL_GS : The iterative solver uses the classical         
+    # *                Gram-Schmidt routine ClassicalGS listed in this 
+    # *                file.                                           
+    # * -----------------------------------------------------------------
+    # */
+    #
+    enum: MODIFIED_GS
+    enum: CLASSICAL_GS
+    
     
 cdef extern from "sundials/sundials_dense.h":
     #/*

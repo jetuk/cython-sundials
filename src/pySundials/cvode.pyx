@@ -2,6 +2,7 @@ cimport libsundials as sun
 cimport libcvode as cvode
 
 from sundials cimport N_Vector, pyDlsMat
+from sundials import PRE_CONDITION_CONSTS, GS_TYPES
 
 from libc.stdlib cimport abort, malloc, free
 from cpython cimport Py_INCREF, Py_DECREF
@@ -12,17 +13,14 @@ import numpy as np
 cimport numpy as np
 np.import_array() # initialize C API to call PyArray_SimpleNewFromData
 
-include 'denseGET.pxi'
+
 
 class CVodeError(Exception):
     pass
 
+include 'denseGET.pxi'
 include 'cvode_properties.pxi'
 
-PRE_CONDITION_CONSTS = {
-    'none': sun.PREC_NONE, 'left': sun.PREC_LEFT, 
-    'right': sun.PREC_RIGHT, 'both': sun.PREC_BOTH
-}
 
 
 cdef class Cvode(BaseCvode):
@@ -141,14 +139,15 @@ cdef class Cvode(BaseCvode):
         if user_jac:
             ret = cvode.CVDlsSetBandJacFn(self._cv, _CvDlsBandJacFn)
             
-    def setupIndirectLinearSolver(self, solver='spgmr', pretype='none', int maxl=0, user_pre=False, user_jac=False ):
+    def setupIndirectLinearSolver(self, solver='spgmr', prectype='none', gstype=None,
+                                  int maxl=0, epslin=None, user_pre=False, user_jac=False ):
         """
         Initialise Indirect Linear Solver
         
         
         """
         
-        cdef int pre = PRE_CONDITION_CONSTS[pretype]
+        cdef int pre = PRE_CONDITION_CONSTS[prectype]
         
         
         if solver == 'spgmr':
@@ -169,16 +168,87 @@ cdef class Cvode(BaseCvode):
         elif ret != cvode.CVSPILS_SUCCESS:
             raise ValueError("Unknown Error ({})".format(ret))
             
+        if not gstype is None:
+            self.spilsGSType = gstype
+        if not epslin is None:
+            self.spilsEpsLin = epslin
             
-        if user_pre:
+        if pre != sun.PREC_NONE:
             ret = cvode.CVSpilsSetPreconditioner(self._cv, _CvSpilsPrecSetupFn,
                                                    _CvSpilsPrecSolveFn)
-            self._handleSpilsSetReturn(ret, 'SpilsSetPreconditioner')
+            #self._handleSpilsSetReturn(ret, 'SpilsSetPreconditioner')
         if user_jac:
             ret = cvode.CVSpilsSetJacTimesVecFn(self._cv, _CvSpilsJacTimesVecFn)            
-            self._handleSpilsSetReturn(ret, 'SpilsSetJacTimesVecFn')
+            #self._handleSpilsSetReturn(ret, 'SpilsSetJacTimesVecFn')
         
+        
+    property spilsPrecType:
+        def __get__(self, ):
+            raise NotImplementedError()
+        
+        def __set__(self, value):
+            cdef int prec = PRE_CONDITION_CONSTS[value]
+            ret = cvode.CVSpilsSetPrecType(self._cv,prec)
+            if ret == cvode.CV_SUCCESS:
+                return
+            if ret == cvode.CV_MEM_NULL:
+                raise ValueError("CVODE memory pointer is NULL")
+            if ret == cvode.CVSPILS_LMEM_NULL:
+                raise ValueError("CVODE linear solver memory was NULL")
+            if ret == cvode.CV_ILL_INPUT:
+                raise ValueError("Illegal value")
+            raise ValueError("Unknown error")        
 
+    property spilsGSType:
+        def __get__(self, ):
+            raise NotImplementedError()
+        
+        def __set__(self, value):
+            cdef int gstype = GS_TYPES[value]
+            ret = cvode.CVSpilsSetGSType(self._cv,gstype)
+            if ret == cvode.CV_SUCCESS:
+                return
+            if ret == cvode.CV_MEM_NULL:
+                raise ValueError("CVODE memory pointer is NULL")
+            if ret == cvode.CVSPILS_LMEM_NULL:
+                raise ValueError("CVODE linear solver memory was NULL")
+            if ret == cvode.CV_ILL_INPUT:
+                raise ValueError("Illegal value")
+            raise ValueError("Unknown error")
+
+    property spilsMaxl:
+        def __get__(self, ):
+            raise NotImplementedError()
+        
+        def __set__(self, value):
+            cdef int maxl = value
+            ret = cvode.CVSpilsSetMaxl(self._cv,maxl)
+            if ret == cvode.CV_SUCCESS:
+                return
+            if ret == cvode.CV_MEM_NULL:
+                raise ValueError("CVODE memory pointer is NULL")
+            if ret == cvode.CVSPILS_LMEM_NULL:
+                raise ValueError("CVODE linear solver memory was NULL")
+            if ret == cvode.CV_ILL_INPUT:
+                raise ValueError("Illegal value")
+            raise ValueError("Unknown error")
+
+    property spilsEpsLin:
+        def __get__(self, ):
+            raise NotImplementedError()
+        
+        def __set__(self, value):
+            cdef sun.realtype epslin = value
+            ret = cvode.CVSpilsSetEpsLin(self._cv,epslin)
+            if ret == cvode.CV_SUCCESS:
+                return
+            if ret == cvode.CV_MEM_NULL:
+                raise ValueError("CVODE memory pointer is NULL")
+            if ret == cvode.CVSPILS_LMEM_NULL:
+                raise ValueError("CVODE linear solver memory was NULL")
+            if ret == cvode.CV_ILL_INPUT:
+                raise ValueError("Illegal value")
+            raise ValueError("Unknown error")
         
     def Solve(self, sun.realtype tout, N_Vector yout):
         cdef sun.realtype tret     
@@ -199,11 +269,13 @@ cdef class Cvode(BaseCvode):
     def DlsBandJacFn(self, N, mupper, mlower, t, y, fy, J, tmp1, tmp2, tmp3):        
         raise NotImplementedError()
         
-    def SpilsJacTimesVec(self, uu, v, Jv, new_uu):
+    def SpilsJacTimesVec(self, v, Jv, t, y, fy, tmp):
         raise NotImplementedError()
         
-    def SpilsPrecSetup(self, uu, uscale, fval, fscale,
-                                       vtemp1, vtemp2):    
+    def SpilsPrecSetup(self, t, y, fy, jok, gamma, tmp1, tmp2, tmp3):
+        raise NotImplementedError()
+        
+    def SpilsPrecSolve(self, t, y, fy, r, z, gamma, delta, lr, tmp):
         raise NotImplementedError()
         
         
@@ -282,10 +354,10 @@ cdef int _CvSpilsJacTimesVecFn(sun.N_Vector v, sun.N_Vector Jv, sun.realtype t,
     pytmp = <object>tmp.content
     
     
-    try:
-        return obj.JacTimesVec(pyv, pyJv, t, pyy, pyfy, pytmp )
-    except Exception:
-        return -1
+    #try:
+    return obj.SpilsJacTimesVec(pyv, pyJv, t, pyy, pyfy, pytmp )
+    #except Exception:
+    #    return -1
     
     
 
@@ -303,17 +375,23 @@ cdef int _CvSpilsPrecSetupFn(sun.realtype t, sun.N_Vector y, sun.N_Vector fy,
     
     pyy = <object>y.content
     pyfy = <object>fy.content
+
     
+    pytmp1 = <object>tmp1.content
+    pytmp2 = <object>tmp2.content
+    pytmp3 = <object>tmp3.content
     
-    
-    pyvtemp1 = <object>tmp1.content
-    pyvtemp2 = <object>tmp2.content
-    pyvtemp2 = <object>tmp3.content
-    
-    try:
-        return obj.SpilsPrecSetup(t, pyy, pyfy)
-    except Exception:
-        return -1
+    #try:
+    ret, jcur = obj.SpilsPrecSetup(t, pyy, pyfy, jok, gamma, pytmp1, pytmp2, pytmp3)
+
+    if jcur:
+        jcurPtr = <sun.booleantype *>1
+    else:
+        jcurPtr = <sun.booleantype *>0
+        
+    return ret
+    #except Exception:
+    #    return -1
     
 cdef int _CvSpilsPrecSolveFn(sun.realtype t, sun.N_Vector y, sun.N_Vector fy,
                                       sun.N_Vector r, sun.N_Vector z,
@@ -329,7 +407,7 @@ cdef int _CvSpilsPrecSolveFn(sun.realtype t, sun.N_Vector y, sun.N_Vector fy,
     pyz = <object>z.content
     pytmp = <object>tmp.content
     
-    try:
-        return obj.SpilsPrecSolve(t, pyy, pyfy, pyr, pyz, pytmp)     
-    except Exception:
-        return -1
+    #try:
+    return obj.SpilsPrecSolve(t, pyy, pyfy, pyr, pyz, gamma, delta, lr, pytmp)     
+    #except Exception:
+    #    return -1

@@ -184,6 +184,13 @@ def createCvodeProperties(filename, ):
         ('dlsNumJacEvals', [('njevals', 'long int'),], 'CVDlsGetNumJacEvals'),
         ('dlsNumRhsEvals', [('nfevalsLS', 'long int'),], 'CVDlsGetNumRhsEvals'),
         ('dlsLastFlag', [('flag', 'long int'),], 'CVDlsGetLastFlag'), 
+        ('spilsWorkSpace', [('lenrwLS', 'long int'),('leniwLS', 'long int')], 'CVSpilsGetWorkSpace'),
+        ('spilsNumPrecEvals', [('npevals', 'long int'),], 'CVSpilsGetNumPrecEvals'),
+        ('spilsNumPrecSolves', [('npsolves', 'long int'),], 'CVSpilsGetNumPrecSolves'),
+        ('spilsNumLinIters', [('nliters', 'long int'),], 'CVSpilsGetNumLinIters'),
+        ('spilsNumConvFails', [('nlcfails', 'long int'),], 'CVSpilsGetNumConvFails'),
+        ('spilsNumJtimesEvals', [('njvevals', 'long int'),], 'CVSpilsGetNumJtimesEvals'),
+        ('spilsNumRhsEvals', [('nfevalsLS', 'long int'),], 'CVSpilsGetNumRhsEvals')
     
     )
         

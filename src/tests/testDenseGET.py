@@ -2,7 +2,7 @@
 
 
 import numpy as np
-from pySundials.kinsol import denseGETRF, denseGETRS
+from pySundials.cvode import denseGETRF, denseGETRS
 
 from scipy import linalg
 

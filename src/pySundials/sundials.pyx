@@ -20,7 +20,12 @@ import cython
 
 include "Nvector.pxi"
 
+PRE_CONDITION_CONSTS = {
+    'none': sun.PREC_NONE, 'left': sun.PREC_LEFT, 
+    'right': sun.PREC_RIGHT, 'both': sun.PREC_BOTH
+}
 
+GS_TYPES = {'modified': sun.MODIFIED_GS, 'classical':sun.CLASSICAL_GS}
 
 # Cython wrapper of DlsMat
 

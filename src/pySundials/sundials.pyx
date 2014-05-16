@@ -17,6 +17,9 @@ np.import_array() # initialize C API to call PyArray_SimpleNewFromData
 
 import cython
 
+from mpi4py import MPI
+from mpi4py cimport MPI
+
 
 include "Nvector.pxi"
 

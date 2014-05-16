@@ -7,6 +7,8 @@ from cython_generators import createKinsolProperties, createCvodeProperties
 import os
 import numpy as np
 
+import mpi4py
+
 print np.get_include()
 
 sundials_lib = r'D:\apps\sundials-2.5.0\lib'#~/.local/lib/'
@@ -53,21 +55,21 @@ setup(
     
     Extension("pySundials.sundials", ["pySundials/sundials.pyx",],
                     libraries=['sundials_nvecserial',]+extra_libraries,
-                    include_dirs=[np.get_include(),sundials_inc],
+                    include_dirs=[np.get_include(),mpi4py.get_include(),os.environ['MPI_INCLUDE'],sundials_inc],
                     library_dirs=[sundials_lib,],
                     extra_compile_args=compile_args,
                     
             ),
     Extension("pySundials.cvode", ["pySundials/cvode.pyx",],
                     libraries=['sundials_cvode',]+extra_libraries,
-                    include_dirs=[np.get_include(),sundials_inc],
+                    include_dirs=[np.get_include(),os.environ['MPI_INCLUDE'],sundials_inc],
                     library_dirs=[sundials_lib,], 
                     extra_compile_args=compile_args,
                     
             ),
     Extension("pySundials.kinsol", ["pySundials/kinsol.pyx",],
                     libraries=['sundials_kinsol',]+extra_libraries,
-                    include_dirs=[np.get_include(),sundials_inc],
+                    include_dirs=[np.get_include(),os.environ['MPI_INCLUDE'],sundials_inc],
                     library_dirs=[sundials_lib,], 
                     extra_compile_args=compile_args,
                     

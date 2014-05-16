@@ -3,6 +3,7 @@ cimport libsundials as sun
 #cimport libkinsol as kinsol
 from cpython cimport bool
 cimport numpy as np
+from mpi4py cimport MPI
 
 cdef class N_Vector:
     cdef sun.N_Vector _v
@@ -13,6 +14,12 @@ cdef class N_Vector:
 cdef class NvectorNdarrayFloat64(N_Vector):
     cdef public np.ndarray data
     cdef object shp    
+
+cdef class NvectorMPINdarrayFloat64(N_Vector):
+    cdef public np.ndarray data
+    cdef object local_shp    
+    cdef object global_shp    
+    cdef MPI.Comm comm
 
 
 cdef class NvectorMemoryViewDouble5D(N_Vector):

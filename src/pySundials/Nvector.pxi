@@ -759,4 +759,4 @@ cdef sun.realtype _NVMinQuotient(sun.N_Vector num, sun.N_Vector denom):
     
 include "NvectorImplementations/NvectorNumpy.pxi"
 include "NvectorImplementations/NvectorMemoryView.pxi"
-        
+include "NvectorImplementations/NvectorVariables.pxi"

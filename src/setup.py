@@ -27,7 +27,8 @@ sundials_inc = r'D:\apps\sundials-2.5.0\include'
 #os.utime("kinsol.pyx", None
 
 createKinsolProperties(os.path.join('pySundials','kinsol_properties.pxi'))
-createCvodeProperties(os.path.join('pySundials','cvode_properties.pxi'))
+createCvodeProperties(os.path.join('pySundials','cvode_properties.pxi'), 'BaseCvode', 'cvode')
+createCvodeProperties(os.path.join('pySundials','cvodes_properties.pxi'), 'BaseCvodes', 'cvodes')
 
 debug = False
 if debug:
@@ -62,9 +63,16 @@ setup(
                     libraries=['sundials_cvode',]+extra_libraries,
                     include_dirs=[np.get_include(),sundials_inc],
                     library_dirs=[sundials_lib,], 
-                    extra_compile_args=compile_args,
+                    extra_compile_args=compile_args,                    
                     
             ),
+    Extension("pySundials.cvodes", ["pySundials/cvodes.pyx",],
+                    libraries=['sundials_cvodes',]+extra_libraries,
+                    include_dirs=[np.get_include(),sundials_inc],
+                    library_dirs=[sundials_lib,], 
+                    extra_compile_args=compile_args,                    
+                    
+            ),            
     Extension("pySundials.kinsol", ["pySundials/kinsol.pyx",],
                     libraries=['sundials_kinsol',]+extra_libraries,
                     include_dirs=[np.get_include(),sundials_inc],

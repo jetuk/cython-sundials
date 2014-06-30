@@ -153,8 +153,8 @@ cdef class BaseKinsol:
     fh.write(s)
     fh.close()
     
-def createCvodeProperties(filename, ):
-    module = 'cvode'
+def createCvodeProperties(filename, classname, module):
+    #module = 'cvode'
     mem_ptr = 'self._cv'
     
     getter_success = 'CV_SUCCESS'
@@ -201,6 +201,7 @@ def createCvodeProperties(filename, ):
         'CV_ILL_INPUT':"Illegal value"}   
     
     set_properties = (
+        ('maxNumSteps', [('maxsteps', 'long int'),], 'CVodeSetMaxNumSteps'),
         ('maxOrd', [('maxord','int'),], 'CVodeSetMaxOrd'),
         ('maxHnilWarns', [('mxhnil','int'),], 'CVodeSetMaxHnilWarns'),
         ('stabLimDet', [('stldet', 'sun.booleantype'),], 'CVodeSetStabLimDet'),
@@ -217,37 +218,38 @@ def createCvodeProperties(filename, ):
     )
 
 
-    s = """
+    template = """
 
-cdef class BaseCvode:
+cdef class {klass}:
     
     def __cinit__(self, *args, **kwds): 
         multistep = kwds.pop('multistep', 'bdf')
         iteration = kwds.pop('iteration', 'functional')
                      
         if multistep == 'bdf':
-            self._ms = cvode.CV_BDF
+            self._ms = {mod}.CV_BDF
         elif multistep == 'adams':
-            self._ms = cvode.CV_ADAMS
+            self._ms = {mod}.CV_ADAMS
         else:
             raise ValueError
             
         if iteration == 'functional':
-            self._it = cvode.CV_FUNCTIONAL
+            self._it = {mod}.CV_FUNCTIONAL
         elif iteration == 'newton':
-            self._it = cvode.CV_NEWTON
+            self._it = {mod}.CV_NEWTON
         else:
             raise ValueError
             
         
-        self._cv = cvode.CVodeCreate(self._ms, self._it)       
+        self._cv = {mod}.CVodeCreate(self._ms, self._it)       
         if not self._cv:
             raise MemoryError
         
-        ret = cvode.CVodeSetUserData(self._cv, <void *>self)   
+        ret = {mod}.CVodeSetUserData(self._cv, <void *>self)   
 
 
     """
+    s = template.format(klass=classname, mod=module, )
     s += "\n"
     
     for name,variables,func in get_properties:

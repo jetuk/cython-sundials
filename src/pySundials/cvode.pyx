@@ -280,7 +280,7 @@ cdef class Cvode(BaseCvode):
         
         
 cdef int _CvRhsFn(sun.realtype t, sun.N_Vector y,
-    		       sun.N_Vector ydot, void *user_data):
+    		       sun.N_Vector ydot, void *user_data) except? -1:
     cdef object obj
     
     obj = <object>user_data

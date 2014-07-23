@@ -2,7 +2,9 @@
 
 
 def common_entries(*dcts):
-    for i in set(dcts[0]).intersection(*dcts[1:]):
+    #for i in set(dcts[0]).intersection(*dcts[1:]):
+    #    yield (i,) + tuple(d[i] for d in dcts)
+    for i in dcts[0]:
         yield (i,) + tuple(d[i] for d in dcts)
 
 
@@ -73,7 +75,6 @@ class VariableNvector(N_Vector):
     def LinearSum(self, a, b, y, z):
         for vname, vx, vy, vz in common_entries(self.variables, y.variables, z.variables):
             vz.value[...] = a*vx.value + b*vy.value
-
         
     def Constant(self, c):
         for vx in self.variables.itervalues():

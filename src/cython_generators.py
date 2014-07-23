@@ -153,8 +153,7 @@ cdef class BaseKinsol:
     fh.write(s)
     fh.close()
     
-def createCvodeProperties(filename, classname, module):
-    #module = 'cvode'
+def createCvodeProperties(filename, classname, module, common_methods_filename):
     mem_ptr = 'self._cv'
     
     getter_success = 'CV_SUCCESS'
@@ -266,6 +265,8 @@ cdef class {klass}:
     
     fh = open(filename, 'wb')
     fh.write(s)
+    fh.write("\n\n")
+    fh.write(open(common_methods_filename).read())
     fh.close()
     
 if __name__ == '__main__':

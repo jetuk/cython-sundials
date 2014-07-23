@@ -27,8 +27,14 @@ sundials_inc = r'D:\apps\sundials-2.5.0\include'
 #os.utime("kinsol.pyx", None
 
 createKinsolProperties(os.path.join('pySundials','kinsol_properties.pxi'))
-createCvodeProperties(os.path.join('pySundials','cvode_properties.pxi'), 'BaseCvode', 'cvode')
-createCvodeProperties(os.path.join('pySundials','cvodes_properties.pxi'), 'BaseCvodes', 'cvodes')
+
+cv_common = os.path.join('pySundials', 'cvode_common.pxi')
+createCvodeProperties(os.path.join('pySundials','cvode_properties.pxi'), 
+                          'BaseCvode', 'cvode', cv_common)
+# Note that despite this being cvodes the module is import as cvode
+# for compatibility with the common file
+createCvodeProperties(os.path.join('pySundials','cvodes_properties.pxi'), 
+                          'BaseCvodes', 'cvode', cv_common)
 
 debug = False
 if debug:

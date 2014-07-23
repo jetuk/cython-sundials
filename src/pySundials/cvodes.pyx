@@ -1,5 +1,5 @@
 cimport libsundials as sun
-cimport libcvodes as cvodes
+cimport libcvodes as cvode
 
 from sundials cimport N_Vector, pyDlsMat
 from sundials import PRE_CONDITION_CONSTS, GS_TYPES
@@ -22,11 +22,8 @@ include 'denseGET.pxi'
 include 'cvodes_properties.pxi'
 
 
-cdef class Cvode(BaseCvodes):
+cdef class Cvodes(BaseCvodes):
     
     def __init__(self, *args, **kwds):        
         self._nrtfn = kwds.pop('nrtfn', 0)
         
-    @property
-    def nrtfn(self, ):
-        return self._nrtfn

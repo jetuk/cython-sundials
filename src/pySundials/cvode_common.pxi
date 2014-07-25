@@ -33,9 +33,11 @@
             if ret != 0:
                 raise CVodeError()
    
-    def setTolerances(self, sun.realtype reltol, abstol):
+    def setTolerances(self, reltol=None, abstol=None):
         
-        if isinstance(abstol, N_Vector):
+        if reltol is None and abstol is None:
+            ret = cvode.CVodeWFtolerances(self._cv, _CvEwtFn)
+        elif isinstance(abstol, N_Vector):
             ret = cvode.CVodeSVtolerances(self._cv, reltol, (<N_Vector>abstol)._v)
         else:
             ret = cvode.CVodeSStolerances(self._cv, reltol, abstol)
@@ -236,6 +238,9 @@
     def RootFn(self, t, y, np.float64_t[::1] gout):
         raise NotImplementedError()
         
+    def ErrWeightFn(self, y, ewt):
+        raise NotImplementedError()
+        
     def DlsDenseJacFn(self, N, t, y, fy, J, tmp1, tmp2, tmp3):
         raise NotImplementedError()
         
@@ -278,6 +283,16 @@ cdef int _CvRootFn(sun.realtype t, sun.N_Vector y, sun.realtype *gout,
         return obj.RootFn(t, pyy, pygout)
     except Exception:
         return -1
+    
+
+cdef int _CvEwtFn(sun.N_Vector y, sun.N_Vector ewt, void *user_data):
+    
+    cdef object obj = <object>user_data              
+              
+    pyy = <object>y.content
+    pyewt = <object>ewt.content
+    
+    return obj.ErrWeightFn(pyy, pyewt)
     
 cdef int _CvDlsDenseJacFn(long int N, sun.realtype t,
 			       sun.N_Vector y, sun.N_Vector fy, 

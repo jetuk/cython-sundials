@@ -91,18 +91,21 @@ class AdvDiff(Cvode):
         horac = self.hacoef
         verdc = self.vdcoef
         
+        mx,my = u.data.shape
+        
+        
             
         # Loop over all grid points. 
-        for j in range(MY):
+        for j in range(my):
             
-            for i in range(MX):
+            for i in range(mx):
                 # Extract u at x_i, y_j and four neighboring points 
                 uij = u.data[i,j]
                 
                 udn = ZERO if j == 0 else u.data[i,j-1]
-                uup = ZERO if j == MY-1 else u.data[i,j+1]
+                uup = ZERO if j == my-1 else u.data[i,j+1]
                 ult = ZERO if i == 0 else u.data[i-1,j]
-                urt = ZERO if i == MX-1 else u.data[i+1,j]
+                urt = ZERO if i == mx-1 else u.data[i+1,j]
                 
 
                 # Set diffusion and advection terms and load into udot 
@@ -170,15 +173,20 @@ class AdvDiff(Cvode):
         return 0
 
         
-    def SetIC(self, u):
+    def SetIC(self, u, coef):
         """
         Load initial profile into u vector 
         """
-        for j in range(MY):
+        
+        mx,my = u.data.shape
+        xmax = (mx+1)*self.dx
+        ymax = (my+1)*self.dy
+        
+        for j in range(my):
             y = (j+1)*self.dy
-            for i in range(MX):
+            for i in range(mx):
                 x = (i+1)*self.dx
-                u.data[i,j] = x*(XMAX - x)*y*(YMAX - y)*np.exp(FIVE*x*y)
+                u.data[i,j] = x*(xmax - x)*y*(ymax - y)*np.exp(coef*x*y)
                 
                 
     def PrintOutput(self, t, umax):
@@ -233,7 +241,7 @@ if __name__ == '__main__':
     # Backward Differentiation Formula and the use of a Newton iteration 
     cvode_mem = AdvDiff(dx, dy, ONE/(dx*dx), HALF/(TWO*dx),  ONE/(dy*dy),
                         multistep='bdf', iteration='newton')
-    cvode_mem.SetIC(u) # Initialize u vector 
+    cvode_mem.SetIC(u, FIVE) # Initialize u vector 
 
     # Call CVodeInit to initialize the integrator memory and specify the
     # user's right hand side function in u'=f(t,u), the inital time T0, and

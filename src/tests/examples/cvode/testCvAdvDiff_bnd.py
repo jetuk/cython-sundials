@@ -115,7 +115,6 @@ class AdvDiff(Cvode):
                 vdiff = verdc*(uup - TWO*uij + udn)
                 udot.data[i,j] = hdiff + hadv + vdiff
   
-
         return 0 
 
         
@@ -165,7 +164,7 @@ class AdvDiff(Cvode):
                 #if (i != MX) BAND_COL_ELEM(kthCol,k+MY,k) = hordc - horac;
                 #if (j != 1)  BAND_COL_ELEM(kthCol,k-1,k)  = verdc;
                 #if (j != MY) BAND_COL_ELEM(kthCol,k+1,k)  = verdc;:
-                J[k,k] = -TWO*(verdc*hordc)
+                J[k,k] = -TWO*(verdc+hordc)
                 if i != 0: J[k-MY,k] = hordc + horac
                 if i != MX-1: J[k+MY,k] = hordc - horac
                 if j != 0: J[k-1,k] = verdc

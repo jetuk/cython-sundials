@@ -201,6 +201,7 @@ def createCvodeProperties(filename, ):
         'CV_ILL_INPUT':"Illegal value"}   
     
     set_properties = (
+        ('maxNumSteps', [('mxsteps','long int'),], 'CVodeSetMaxNumSteps'),
         ('maxOrd', [('maxord','int'),], 'CVodeSetMaxOrd'),
         ('maxHnilWarns', [('mxhnil','int'),], 'CVodeSetMaxHnilWarns'),
         ('stabLimDet', [('stldet', 'sun.booleantype'),], 'CVodeSetStabLimDet'),

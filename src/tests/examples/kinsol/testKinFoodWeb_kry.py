@@ -147,7 +147,7 @@ class FoodWeb(Kinsol):
         # * Allocate memory for data structure of type UserData 
         # */        
         self.P = np.empty( (mx,my,num_species,num_species), dtype=np.float64 )
-        self.pivot = np.zeros( (mx,my,num_species), dtype=np.int64 )
+        self.pivot = np.zeros( (mx,my,num_species), dtype=np.int32 )
         self.acoef = np.empty( (num_species,num_species) )
         self.bcoef = np.empty( num_species )
         self.cox = np.empty( num_species )
@@ -306,7 +306,10 @@ class FoodWeb(Kinsol):
                         self.P[jx,jy,j,i] = (perturb_rates[jx,jy,i] - self.rates.data[jx,jy,i])*fac
             
                 #/* Do LU decomposition of size NUM_SPECIES preconditioner block */
-                ret = denseGETRF(self.P[jx,jy,:,:], self.pivot[jx,jy,:])
+                # P shuold be order='F' from the outset, alternatively use
+                # scipy for this calculation.
+                P = np.asfortranarray(self.P[jx,jy,:,:].T)
+                ret = denseGETRF(P, self.pivot[jx,jy,:])
                 
                 #if ret != 0: return 1
   
@@ -335,7 +338,8 @@ class FoodWeb(Kinsol):
                   piv = self.pivot[jx,jy,:]                  
                   Pxy = self.P[jx,jy,:,:]
                   #print Pxy, piv
-                  denseGETRS(self.P[jx,jy,:,:], self.pivot[jx,jy,:], vv.data[jx,jy,:])
+                  P = np.asfortranarray(self.P[jx,jy,:,:].T)
+                  denseGETRS(P, self.pivot[jx,jy,:], vv.data[jx,jy,:])
 
         
         return 0

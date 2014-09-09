@@ -289,3 +289,107 @@ cdef extern from "sundials/sundials_dense.h":
     # */
     long int denseGETRF(realtype **a, long int m, long int n, long int *p)
     void denseGETRS(realtype **a, long int n, long int *p, realtype *b) 
+        
+    
+    #/*
+    # * -----------------------------------------------------------------
+    # * Functions : DensePOTRF and DensePOTRS
+    # * -----------------------------------------------------------------
+    # * DensePOTRF computes the Cholesky factorization of a real symmetric
+    # * positive definite matrix A.
+    # * -----------------------------------------------------------------
+    # * DensePOTRS solves a system of linear equations A*X = B with a 
+    # * symmetric positive definite matrix A using the Cholesky factorization
+    # * A = L*L**T computed by DensePOTRF.
+    # *
+    # * -----------------------------------------------------------------
+    # * DensePOTRF and DensePOTRS are simply wrappers around densePOTRF
+    # * and densePOTRS, respectively, which perform all the work by
+    # * directly accessing the data in the DlsMat A (i.e. the field cols)
+    # * -----------------------------------------------------------------
+    # */
+    #
+    #SUNDIALS_EXPORT long int DensePOTRF(DlsMat A);
+    #SUNDIALS_EXPORT void DensePOTRS(DlsMat A, realtype *b);
+    
+    long int densePOTRF(realtype **a, long int m)
+    void densePOTRS(realtype **a, long int m, realtype *b)
+    
+    #/*
+    # * -----------------------------------------------------------------
+    # * Functions : DenseGEQRF and DenseORMQR
+    # * -----------------------------------------------------------------
+    # * DenseGEQRF computes a QR factorization of a real M-by-N matrix A:
+    # * A = Q * R (with M>= N).
+    # * 
+    # * DenseGEQRF requires a temporary work vector wrk of length M.
+    # * -----------------------------------------------------------------
+    # * DenseORMQR computes the product w = Q * v where Q is a real 
+    # * orthogonal matrix defined as the product of k elementary reflectors
+    # *
+    # *        Q = H(1) H(2) . . . H(k)
+    # *
+    # * as returned by DenseGEQRF. Q is an M-by-N matrix, v is a vector
+    # * of length N and w is a vector of length M (with M>=N).
+    # *
+    # * DenseORMQR requires a temporary work vector wrk of length M.
+    # *
+    # * -----------------------------------------------------------------
+    # * DenseGEQRF and DenseORMQR are simply wrappers around denseGEQRF
+    # * and denseORMQR, respectively, which perform all the work by
+    # * directly accessing the data in the DlsMat A (i.e. the field cols)
+    # * -----------------------------------------------------------------
+    # */
+    #
+    #SUNDIALS_EXPORT int DenseGEQRF(DlsMat A, realtype *beta, realtype *wrk);
+    #SUNDIALS_EXPORT int DenseORMQR(DlsMat A, realtype *beta, realtype *vn, realtype *vm, 
+    #			       realtype *wrk);
+    #
+    int denseGEQRF(realtype **a, long int m, long int n, realtype *beta, realtype *v)
+    int denseORMQR(realtype **a, long int m, long int n, realtype *beta,
+    			       realtype *v, realtype *w, realtype *wrk)
+    #
+    #/*
+    # * -----------------------------------------------------------------
+    # * Function : DenseCopy
+    # * -----------------------------------------------------------------
+    # * DenseCopy copies the contents of the M-by-N matrix A into the
+    # * M-by-N matrix B.
+    # * 
+    # * DenseCopy is a wrapper around denseCopy which accesses the data
+    # * in the DlsMat A and B (i.e. the fields cols)
+    # * -----------------------------------------------------------------
+    # */
+    
+    #SUNDIALS_EXPORT void DenseCopy(DlsMat A, DlsMat B);
+    void denseCopy(realtype **a, realtype **b, long int m, long int n)
+    
+    #/*
+    # * -----------------------------------------------------------------
+    # * Function: DenseScale
+    # * -----------------------------------------------------------------
+    # * DenseScale scales the elements of the M-by-N matrix A by the
+    # * constant c and stores the result back in A.
+    # *
+    # * DenseScale is a wrapper around denseScale which performs the actual
+    # * scaling by accessing the data in the DlsMat A (i.e. the field
+    # * cols).
+    # * -----------------------------------------------------------------
+    # */
+    #
+    #SUNDIALS_EXPORT void DenseScale(realtype c, DlsMat A);
+    void denseScale(realtype c, realtype **a, long int m, long int n)
+    
+    
+    #/*
+    # * -----------------------------------------------------------------
+    # * Function: denseAddIdentity
+    # * -----------------------------------------------------------------
+    # * denseAddIdentity adds the identity matrix to the n-by-n matrix
+    # * stored in the realtype** arrays.
+    # * -----------------------------------------------------------------
+    # */
+    #
+    void denseAddIdentity(realtype **a, long int n)
+    #
+    #    

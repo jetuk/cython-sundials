@@ -59,6 +59,10 @@ cdef class Cvode(BaseCvode):
             ret = cvode.CVodeRootInit(self._cv, self._nrtfn, _CvRootFn, )
             if ret != 0:
                 raise CVodeError()
+                
+    def reInitSolver(self, sun.realtype t0, N_Vector y0, ):
+        
+        ret = cvode.CVodeReInit(self._cv, t0, y0._v)
    
     def setTolerances(self, sun.realtype reltol, abstol):
         

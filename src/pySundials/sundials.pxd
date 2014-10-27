@@ -25,8 +25,19 @@ cdef class NvectorMemoryViewDouble5D(N_Vector):
     
 cdef class VariableNvector(N_Vector):
     cdef public dict variables
+    
+cdef class Variable1D(object):
+    cdef public str name
+    cdef public dict saved_values
+    cdef list _copied_attr_names
+    cdef double[:] value
+    cdef dict _attrs        
 
-        
+cdef class Variable1DNvector(N_Vector):
+    cdef public list variables
+    
+    
+    
     
 cdef class pyDlsMat:
     cdef sun.DlsMat _m

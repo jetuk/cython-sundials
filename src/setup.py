@@ -36,8 +36,8 @@ else:
     compile_args = ["-O2",]
     
     
-extra_libraries = ['lapack','blas']
-#extra_libraries = []
+#extra_libraries = ['lapack','blas']
+extra_libraries = []
 
 setup(
     name='pySundials',

@@ -10,6 +10,8 @@ cdef class N_Vector:
     cdef long LengthRealType
     cdef long LengthIntType
     
+
+    
 cdef class NvectorNdarrayFloat64(N_Vector):
     cdef public np.ndarray data
     cdef object shp    
@@ -20,6 +22,11 @@ cdef class NvectorMemoryViewDouble5D(N_Vector):
     cdef np.ndarray _data
     cdef object shp
     cdef bint debug
+    
+cdef class VariableNvector(N_Vector):
+    cdef public dict variables
+
+        
     
 cdef class pyDlsMat:
     cdef sun.DlsMat _m

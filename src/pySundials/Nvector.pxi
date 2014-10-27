@@ -316,7 +316,7 @@ cdef class N_Vector:
         """
         raise NotImplementedError()
         
-    def LinearSum(self, a, b, y, z):
+    def LinearSum(self, double a, double b, N_Vector y, N_Vector z):
         """
          * N_VLinearSum
          *   Performs the operation z = a*x + b*y        
@@ -392,7 +392,7 @@ cdef class N_Vector:
         """
         raise NotImplementedError()
         
-    def WrmsNorm(self, w):
+    def WrmsNorm(self, N_Vector w):
         """
          * N_VWrmsNorm
          *   Returns the weighted root mean square norm of x with weight 
@@ -572,9 +572,9 @@ cdef void _NVLinearSum(sun.realtype a, sun.N_Vector x,
     cdef N_Vector pyy
     cdef N_Vector pyz
     
-    pyx = <object>x.content
-    pyy = <object>y.content
-    pyz = <object>z.content
+    pyx = <N_Vector>x.content
+    pyy = <N_Vector>y.content
+    pyz = <N_Vector>z.content
     
     pyx.LinearSum(a, b, pyy, pyz)
     

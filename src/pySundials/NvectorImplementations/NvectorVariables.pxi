@@ -8,8 +8,13 @@ def common_entries(*dcts):
         yield (i,) + tuple(d[i] for d in dcts)
 
 
-class Variable(object):
-    #cdef str name
+cdef class Variable(object):
+    cdef public str name
+    cdef public dict saved_values
+    cdef list _copied_attr_names
+    cdef public np.ndarray value
+    cdef dict _attrs    
+    
     def __init__(self, name, value=None, shape=None, copied_attrs=None):
         self.name = name
         
@@ -22,10 +27,17 @@ class Variable(object):
         
         self.saved_values = {}
         self._copied_attr_names = []
+        self._attrs = {}
         if not copied_attrs is None:
             for name, val in copied_attrs.iteritems():
-                setattr(self, name, val)
+                #setattr(self, name, val)
+                self._attrs[name] = val
                 self._copied_attr_names.append(name)
+                
+    def __getattr__(self, name):
+        if name in self._attrs:
+            return self._attrs[name]
+        return object.__getattribute__(self, name)
 
     def cvalue(self, t):
         return self.value
@@ -46,7 +58,7 @@ class Variable(object):
         return mn,mx
         
         
-class VariableNvector(N_Vector):
+cdef class VariableNvector(N_Vector):
     def __init__(self, variables={}):
         N_Vector.__init__(self, )
         
@@ -62,6 +74,7 @@ class VariableNvector(N_Vector):
         self.LengthIntType = 1
         
     def Size(self, ):
+        cdef Variable var
         return np.sum([var.value.size for var in self.variables.itervalues()])
         
     def Clone(self, ):
@@ -74,22 +87,24 @@ class VariableNvector(N_Vector):
     def Destroy(self, ):
         pass
         
-    def LinearSum(self, a, b, y, z):
+    def LinearSum(self, double a, double b, N_Vector y, N_Vector z):
         #for vname, vx, vy, vz in common_entries(self.variables, y.variables, z.variables):
-            
-        #cdef Variable vx, vy, vz
+        cdef str key    
+        cdef Variable vx, vy, vz
         for key in self.variables:
             vx = self.variables[key]
             vy = y.variables[key]
             vz = z.variables[key]            
-            vz.value[...] = a*vx.value + b*vy.value
+            vz.value[...] = a*vx.value[...] + b*vy.value[...]
         
     def Constant(self, c):
+        cdef Variable vx
         for vx in self.variables.itervalues():
             vx.value[...] = c
         
     def Prod(self, y, z):
-        #cdef Variable vx, vy, vz
+        cdef str key   
+        cdef Variable vx, vy, vz
         for key in self.variables:
         #for vname, vx, vy, vz in common_entries(self.variables, y.variables, z.variables):
             vx = self.variables[key]
@@ -99,8 +114,8 @@ class VariableNvector(N_Vector):
         
     def Div(self, y, z):
 #        for vname, vx, vy, vz in common_entries(self.variables, y.variables, z.variables):
-            
-        #cdef Variable vx, vy, vz
+        cdef str key       
+        cdef Variable vx, vy, vz
         for key in self.variables:
         #for vname, vx, vy, vz in common_entries(self.variables, y.variables, z.variables):
             vx = self.variables[key]
@@ -109,9 +124,11 @@ class VariableNvector(N_Vector):
             vz.value[...] = vx.value/vy.value       
         
         
-    def Scale(self, c, z):
+    def Scale(self, double c, VariableNvector z):
         #print 'Scale', c
         #for vname, vx, vz in common_entries(self.variables, z.variables):
+        cdef str key   
+        cdef Variable vx, vz
         for key in self.variables:
             vx = self.variables[key]
             vz = z.variables[key] 
@@ -121,6 +138,8 @@ class VariableNvector(N_Vector):
     def Abs(self, z):
         #print 'Abs'
         #for vname, vx, vz in common_entries(self.variables, z.variables):
+        cdef str key   
+        cdef Variable vx, vz    
         for key in self.variables:
             vx = self.variables[key]
             vz = z.variables[key]             
@@ -130,6 +149,8 @@ class VariableNvector(N_Vector):
     def Inv(self, z):
         #print 'Inv'
         #for vname, vx, vz in common_entries(self.variables, z.variables):
+        cdef str key   
+        cdef Variable vx, vz    
         for key in self.variables:
             vx = self.variables[key]
             vz = z.variables[key]             
@@ -138,6 +159,8 @@ class VariableNvector(N_Vector):
     def AddConst(self, b, z):
         #print 'AddConst', b
         #for vname, vx, vz in common_entries(self.variables, z.variables):
+        cdef str key   
+        cdef Variable vx, vz    
         for key in self.variables:
             vx = self.variables[key]
             vz = z.variables[key]             
@@ -146,6 +169,8 @@ class VariableNvector(N_Vector):
     def DotProd(self, y):
         cdef float ret = 0.0
 #        for vname, vx, vy in common_entries(self.variables, y.variables):
+        cdef str key   
+        cdef Variable vx, vy        
         for key in self.variables:
             vx = self.variables[key]
             vy = y.variables[key]
@@ -156,15 +181,19 @@ class VariableNvector(N_Vector):
         
     def Min(self, ):
         #print 'Min', np.min([var.value.min() for var in self.variables.itervalues()])
+        cdef Variable var
         return np.min([var.value.min() for var in self.variables.itervalues()])
         
         
     def MaxNorm(self, ):
+        cdef Variable var
         return np.max([np.max(np.abs(var.value)) for var in self.variables.itervalues()])
         
-    def WrmsNorm(self, w):        
+    def WrmsNorm(self, VariableNvector w):        
         cdef float ret = 0.0
         #for vname, vx, vw in common_entries(self.variables, w.variables):
+        cdef str key
+        cdef Variable vx, vw
         for key in self.variables:
             vx = self.variables[key]
             vw = w.variables[key]            
